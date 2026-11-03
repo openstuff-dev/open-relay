@@ -31,6 +31,7 @@ export const routes: Routes = [
     children: [
       { path: '', component: Start, title: 'OpenRelay' },
       // A label's QR code: the scan page of the network this person works in.
+      page('settings', 'Settings', () => import('./pages/settings').then((m) => m.Settings)),
       page('s/:code', 'Scan', () => import('./pages/scan').then((m) => m.Scan)),
       {
         ...page('networks', 'Networks', () => import('./pages/networks').then((m) => m.Networks)),

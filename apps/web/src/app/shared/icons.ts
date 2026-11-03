@@ -2,6 +2,7 @@
 export {
   Building2 as iconNetworks,
   Check as iconCheck,
+  ChevronsUpDown as iconChevrons,
   Copy as iconCopy,
   Database as iconData,
   KeyRound as iconKeys,
@@ -12,6 +13,7 @@ export {
   Plus as iconPlus,
   Printer as iconPrint,
   ScanLine as iconScan,
+  Settings as iconSettings,
   Store as iconMerchants,
   Truck as iconPickups,
   Undo2 as iconUndo,

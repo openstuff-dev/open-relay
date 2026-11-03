@@ -1,26 +1,20 @@
 import { ChangeDetectionStrategy, Component, DestroyRef, computed, inject, signal } from '@angular/core';
 import { NavigationEnd, Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
-import { FormsModule } from '@angular/forms';
-import {
-  Button,
-  Callout,
-  Control,
-  Dialog,
-  DialogBody,
-  DialogClose,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  Field,
-  Icon,
-  IconButton,
-  Page,
-  Toaster,
-} from '@openstuff-dev/ui-angular';
-import { Api, errorText } from './core/api';
-import { Session } from './core/session';
 import type { Role } from '@open-relay/contracts';
 import {
+  Icon,
+  IconButton,
+  Menu,
+  MenuItem,
+  MenuLabel,
+  MenuSeparator,
+  Page,
+  PopoverTrigger,
+} from '@openstuff-dev/ui-angular';
+import { Session } from './core/session';
+import {
+  iconCheck,
+  iconChevrons,
   iconData,
   iconKeys,
   iconMembers,
@@ -31,6 +25,7 @@ import {
   iconPickups,
   iconPoints,
   iconScan,
+  iconSettings,
   iconSignOut,
 } from './shared/icons';
 import { ROLE_LABELS } from './shared/labels';
@@ -55,35 +50,39 @@ const LINKS: NavLink[] = [
   { path: 'data', label: 'Export and import', icon: iconData, roles: ['admin'] },
 ];
 
-/** The frame around every signed-in page: the sidebar, the network switch and the topbar. */
+/** "Demo Network" → "DN", "Acme" → "AC". */
+export function initials(name: string): string {
+  const words = name.split(/\s+/).filter(Boolean);
+  const pair = words.length > 1 ? words.slice(0, 2).map((w) => w.charAt(0)).join('') : name.slice(0, 2);
+  return (pair || '?').toUpperCase();
+}
+
+/**
+ * The frame around every signed-in page, laid out like OpenPurpose's: the brand row, the network
+ * switch, the pages, and at the bottom Settings and who is signed in, with sign-out.
+ */
 @Component({
   selector: 'app-shell',
   imports: [
-    FormsModule,
     RouterOutlet,
     RouterLink,
     RouterLinkActive,
-    Button,
-    Callout,
-    Control,
-    Dialog,
-    DialogBody,
-    DialogClose,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
-    Field,
     Icon,
     IconButton,
+    Menu,
+    MenuItem,
+    MenuLabel,
+    MenuSeparator,
     Page,
+    PopoverTrigger,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="os-shell" [attr.data-open]="menuOpen() ? '' : null">
       <nav class="os-shell-sidebar" id="sidebar" aria-label="Main">
-        <a class="os-shell-brand" routerLink="/">
+        <a class="os-shell-brand brand" routerLink="/">
           <!-- The OpenStuff ring with OpenRelay's diamond, as on relay.openstuff.dev. -->
-          <svg class="brand-mark" viewBox="0 0 32 32" aria-hidden="true">
+          <svg viewBox="0 0 32 32" width="22" height="22" aria-hidden="true">
             <path
               class="ring"
               fill-rule="evenodd"
@@ -95,45 +94,98 @@ const LINKS: NavLink[] = [
         </a>
 
         @if (me(); as me) {
-          @if (me.networks.length > 1 || me.isServerAdmin) {
-            <label class="network-switch">
-              <span class="os-visually-hidden">Network</span>
-              <select class="os-select" [value]="network() ?? ''" (change)="switchNetwork($event)">
-                @if (!network()) {
-                  <option value="" disabled>Choose a network</option>
+          @if (me.networks.length || me.isServerAdmin) {
+            <div class="ws">
+              <button type="button" class="ws-button" [os-popover-trigger]="wsMenu">
+                @if (session.membership(); as current) {
+                  <span class="badge" aria-hidden="true">{{ initials(current.name) }}</span>
+                  <span class="ws-text">
+                    <strong>{{ current.name }}</strong>
+                    <small>{{ roleLabels[current.role] }}</small>
+                  </span>
+                } @else {
+                  <span class="badge neutral" aria-hidden="true">?</span>
+                  <span class="ws-text">
+                    <strong>Choose a network</strong>
+                    <small>{{ me.networks.length }} available</small>
+                  </span>
                 }
-                @for (n of me.networks; track n.slug) {
-                  <option [value]="n.slug">{{ n.name }}</option>
+                <svg os-icon [icon]="icons.chevrons" size="sm" class="chevrons"></svg>
+              </button>
+              <div os-menu #wsMenu="osPopover" class="ws-menu" aria-label="Switch network">
+                @if (me.networks.length) {
+                  <div os-menu-label>Networks</div>
+                  @for (n of me.networks; track n.slug) {
+                    <button
+                      type="button"
+                      os-menu-item
+                      role="menuitemradio"
+                      [attr.aria-checked]="n.slug === network()"
+                      (click)="pick(n.slug)"
+                    >
+                      <span class="badge sm" aria-hidden="true">{{ initials(n.name) }}</span>
+                      {{ n.name }}
+                      @if (n.slug === network()) {
+                        <svg os-icon [icon]="icons.check" size="sm" class="checked"></svg>
+                      }
+                    </button>
+                  }
                 }
-              </select>
-            </label>
-          } @else if (me.networks[0]; as only) {
-            <p class="network-name">{{ only.name }}</p>
+                @if (me.isServerAdmin) {
+                  <hr os-menu-separator />
+                  <a os-menu-item routerLink="/networks">
+                    <svg os-icon [icon]="icons.networks" size="sm"></svg>Manage networks
+                  </a>
+                }
+              </div>
+            </div>
           }
         }
 
         @if (network(); as n) {
-          @for (link of links(); track link.path) {
-            <a
-              class="nav-link"
-              [routerLink]="['/n', n, link.path]"
-              routerLinkActive="active"
-              ariaCurrentWhenActive="page"
-            >
-              <svg os-icon [icon]="link.icon"></svg>{{ link.label }}
-            </a>
+          <ul>
+            @for (link of links(); track link.path) {
+              <li>
+                <a
+                  [routerLink]="['/n', n, link.path]"
+                  routerLinkActive="active"
+                  ariaCurrentWhenActive="page"
+                >
+                  <svg os-icon [icon]="link.icon" size="sm"></svg>{{ link.label }}
+                </a>
+              </li>
+            }
+          </ul>
+        }
+
+        <div class="rail-foot">
+          <ul>
+            <li>
+              <a routerLink="/settings" routerLinkActive="active" ariaCurrentWhenActive="page">
+                <svg os-icon [icon]="icons.settings" size="sm"></svg>Settings
+              </a>
+            </li>
+          </ul>
+          @if (me(); as me) {
+            <div class="me-row">
+              <span class="avatar" aria-hidden="true">{{ initials(me.name || me.email) }}</span>
+              <span>
+                {{ me.name || me.email }}
+                <small>{{ roleLine() }}</small>
+              </span>
+              <button
+                os-icon-button
+                variant="ghost"
+                type="button"
+                label="Sign out"
+                title="Sign out"
+                (click)="signOut()"
+              >
+                <svg os-icon [icon]="icons.signOut" size="sm"></svg>
+              </button>
+            </div>
           }
-        }
-        @if (me()?.isServerAdmin) {
-          <a
-            class="nav-link nav-end"
-            routerLink="/networks"
-            routerLinkActive="active"
-            ariaCurrentWhenActive="page"
-          >
-            <svg os-icon [icon]="icons.networks"></svg>Networks
-          </a>
-        }
+        </div>
       </nav>
 
       <div class="os-shell-content">
@@ -150,126 +202,220 @@ const LINKS: NavLink[] = [
           >
             <svg os-icon [icon]="icons.menu"></svg>
           </button>
-          @if (session.role(); as role) {
-            <span class="role">{{ roleLabels[role] }}</span>
+          @if (session.membership(); as current) {
+            <span class="where">{{ current.name }}</span>
           }
-          <button
-            os-button
-            type="button"
-            variant="ghost"
-            size="sm"
-            class="account"
-            [attr.aria-label]="'Change the password of ' + (me()?.name || me()?.email)"
-            (click)="openPassword()"
-          >
-            {{ me()?.name || me()?.email }}
-          </button>
-          <button type="button" os-button variant="ghost" size="sm" (click)="signOut()">
-            <svg os-icon [icon]="icons.signOut" size="sm"></svg>Sign out
-          </button>
         </header>
         <main os-page>
           <router-outlet />
         </main>
       </div>
     </div>
-
-    <dialog os-dialog size="sm" [(open)]="passwordOpen">
-      <header os-dialog-header><h2 os-dialog-title>Change your password</h2></header>
-      <form id="password-form" os-dialog-body class="stack" (ngSubmit)="changePassword()">
-        @if (passwordError(); as error) {
-          <os-callout tone="danger">{{ error }}</os-callout>
-        }
-        <os-field label="Current password">
-          <input
-            os-input
-            type="password"
-            name="current"
-            autocomplete="current-password"
-            required
-            [(ngModel)]="current"
-          />
-        </os-field>
-        <os-field
-          label="New password"
-          hint="At least 10 characters. Your other sessions are signed out."
-        >
-          <input
-            os-input
-            type="password"
-            name="next"
-            autocomplete="new-password"
-            required
-            minlength="10"
-            [(ngModel)]="next"
-          />
-        </os-field>
-      </form>
-      <footer os-dialog-footer>
-        <button os-button os-dialog-close type="button">Cancel</button>
-        <button
-          os-button
-          variant="primary"
-          type="submit"
-          form="password-form"
-          [loading]="savingPassword()"
-        >
-          Change password
-        </button>
-      </footer>
-    </dialog>
   `,
   styles: `
-    .brand-mark {
-      inline-size: 1.5rem;
-      block-size: 1.5rem;
+    .brand {
+      display: flex;
+      gap: var(--os-space-2);
+      align-items: center;
+      padding: 0 var(--os-space-5);
+      color: var(--os-fg-default);
+      font-size: var(--os-text-md);
+      font-weight: var(--os-font-weight-semibold);
+      letter-spacing: -0.01em;
+      text-decoration: none;
     }
 
-    .brand-mark .ring {
+    .brand .ring {
       fill: var(--os-fg-default);
     }
 
-    .brand-mark .glyph {
+    .brand .glyph {
       fill: var(--os-brand-default);
     }
 
-    .network-switch {
-      display: block;
+    .os-shell-sidebar {
+      gap: var(--os-space-1);
+    }
+
+    .ws {
       margin-block-end: var(--os-space-3);
     }
 
-    .network-switch select {
+    .ws-button {
+      display: flex;
+      gap: var(--os-space-2);
+      align-items: center;
       inline-size: 100%;
+      min-block-size: 2.75rem;
+      padding: var(--os-space-2);
+      border: 1px var(--os-border-style) var(--os-border-default);
+      border-radius: var(--os-radius-md);
+      background: var(--os-bg-surface-100);
+      color: var(--os-fg-default);
+      font: inherit;
+      text-align: start;
+      cursor: pointer;
     }
 
-    .network-name {
-      margin: 0 0 var(--os-space-3);
-      padding-inline: var(--os-space-3);
-      color: var(--os-fg-muted);
-      font-size: var(--os-text-sm);
+    .ws-button:hover {
+      border-color: var(--os-border-strong);
     }
 
-    .nav-end {
-      margin-block-start: auto;
-    }
-
-    .role {
-      color: var(--os-fg-muted);
-      font-size: var(--os-text-sm);
-    }
-
-    .account {
-      max-inline-size: 16rem;
+    .chevrons {
       margin-inline-start: auto;
+      color: var(--os-fg-muted);
+    }
+
+    .ws-text {
+      display: grid;
+      min-inline-size: 0;
+      line-height: 1.25;
+    }
+
+    .ws-text strong,
+    .ws-text small {
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
     }
 
-    @container os-shell (inline-size < 40rem) {
-      .role {
-        display: none;
-      }
+    .ws-text strong {
+      font-size: var(--os-text-sm);
+      font-weight: var(--os-font-weight-semibold);
+    }
+
+    .ws-text small {
+      color: var(--os-fg-muted);
+      font-size: var(--os-text-xs);
+    }
+
+    .badge {
+      display: inline-grid;
+      flex: none;
+      place-items: center;
+      inline-size: 1.75rem;
+      block-size: 1.75rem;
+      border-radius: var(--os-radius-sm);
+      background: var(--os-brand-default);
+      color: var(--os-brand-ink);
+      font-size: 0.6875rem;
+      font-weight: var(--os-font-weight-semibold);
+      letter-spacing: 0.02em;
+    }
+
+    .badge.sm {
+      inline-size: 1.25rem;
+      block-size: 1.25rem;
+      font-size: 0.5625rem;
+    }
+
+    .badge.neutral {
+      background: var(--os-fg-default);
+      color: var(--os-bg-default);
+    }
+
+    .ws-menu {
+      min-inline-size: anchor-size(inline);
+    }
+
+    .checked {
+      margin-inline-start: auto;
+      color: var(--os-brand-default);
+    }
+
+    ul {
+      display: grid;
+      gap: 1px;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    li a {
+      display: flex;
+      gap: var(--os-space-2);
+      align-items: center;
+      min-block-size: 2.25rem;
+      padding-inline: var(--os-space-2);
+      border-radius: var(--os-radius-sm);
+      color: var(--os-fg-light);
+      font-size: var(--os-text-sm);
+      font-weight: var(--os-font-weight-medium);
+      text-decoration: none;
+    }
+
+    li a svg {
+      color: var(--os-fg-muted);
+    }
+
+    li a:hover {
+      background: var(--os-bg-hover);
+      color: var(--os-fg-default);
+    }
+
+    li a.active {
+      background: var(--os-bg-surface-100);
+      box-shadow: 0 0 0 1px var(--os-border-default);
+      color: var(--os-fg-default);
+    }
+
+    li a.active svg {
+      color: var(--os-brand-default);
+    }
+
+    .rail-foot {
+      display: grid;
+      gap: 1px;
+      margin-block-start: auto;
+      padding-block-start: var(--os-space-3);
+    }
+
+    .me-row {
+      display: flex;
+      gap: var(--os-space-2);
+      align-items: center;
+      margin-block-start: var(--os-space-2);
+      padding: var(--os-space-2);
+      border-block-start: 1px var(--os-border-style) var(--os-border-default);
+    }
+
+    .avatar {
+      display: grid;
+      flex: none;
+      place-items: center;
+      inline-size: 1.75rem;
+      block-size: 1.75rem;
+      border-radius: var(--os-radius-full);
+      background: var(--os-bg-hover);
+      color: var(--os-fg-light);
+      font-size: 0.6875rem;
+      font-weight: var(--os-font-weight-semibold);
+    }
+
+    .me-row > span:not(.avatar) {
+      display: grid;
+      min-inline-size: 0;
+      font-size: var(--os-text-sm);
+      font-weight: var(--os-font-weight-medium);
+      line-height: 1.3;
+    }
+
+    .me-row small {
+      overflow: hidden;
+      color: var(--os-fg-muted);
+      font-size: var(--os-text-xs);
+      font-weight: var(--os-font-weight-regular);
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .me-row button {
+      margin-inline-start: auto;
+    }
+
+    .where {
+      color: var(--os-fg-muted);
+      font-size: var(--os-text-sm);
     }
   `,
 })
@@ -280,17 +426,36 @@ export class Shell {
   protected readonly network = this.session.network;
   protected readonly menuOpen = signal(false);
   protected readonly roleLabels = ROLE_LABELS;
-  protected readonly icons = { networks: iconNetworks, menu: iconMenu, signOut: iconSignOut };
+  protected readonly initials = initials;
+  protected readonly icons = {
+    check: iconCheck,
+    chevrons: iconChevrons,
+    menu: iconMenu,
+    networks: iconNetworks,
+    settings: iconSettings,
+    signOut: iconSignOut,
+  };
 
   protected readonly links = computed(() => {
     const role = this.session.role();
     return role ? LINKS.filter((l) => l.roles.includes(role)) : [];
   });
 
+  /** "Server admin", or the role in this network. */
+  protected readonly roleLine = computed(() => {
+    if (this.me()?.isServerAdmin) return 'Server admin';
+    const role = this.session.role();
+    return role ? ROLE_LABELS[role] : '';
+  });
+
   constructor() {
     const sync = () => {
       const match = /^\/n\/([^/?#]+)/.exec(this.router.url);
-      this.session.network.set(match?.[1] ? decodeURIComponent(match[1]) : null);
+      // Pages outside a network (Settings, Networks) keep the last one in the switch.
+      if (match?.[1]) this.session.network.set(decodeURIComponent(match[1]));
+      else if (!this.session.network()) {
+        this.session.network.set(this.me()?.networks.at(0)?.slug ?? null);
+      }
     };
     sync();
     const sub = this.router.events.subscribe((event) => {
@@ -304,38 +469,8 @@ export class Shell {
     });
   }
 
-  protected switchNetwork(event: Event): void {
-    const slug = (event.target as HTMLSelectElement).value;
+  protected pick(slug: string): void {
     void this.router.navigate(['/n', slug]);
-  }
-
-  private readonly api = inject(Api);
-  private readonly toaster = inject(Toaster);
-  protected readonly passwordOpen = signal(false);
-  protected readonly savingPassword = signal(false);
-  protected readonly passwordError = signal<string | null>(null);
-  protected current = '';
-  protected next = '';
-
-  protected openPassword(): void {
-    this.current = '';
-    this.next = '';
-    this.passwordError.set(null);
-    this.passwordOpen.set(true);
-  }
-
-  protected async changePassword(): Promise<void> {
-    this.savingPassword.set(true);
-    this.passwordError.set(null);
-    try {
-      await this.api.put('/api/me/password', { current: this.current, next: this.next });
-      this.passwordOpen.set(false);
-      this.toaster.show('Changed your password.', { tone: 'success' });
-    } catch (error) {
-      this.passwordError.set(errorText(error));
-    } finally {
-      this.savingPassword.set(false);
-    }
   }
 
   protected async signOut(): Promise<void> {
