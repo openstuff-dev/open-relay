@@ -291,7 +291,8 @@ export function registerParcelRoutes(app: FastifyInstance, pool: Pool, config: C
 </section>`;
     }));
     void reply.type('text/html; charset=utf-8').header('Cache-Control', 'no-store');
-    return LABEL_PAGE.replace('{{count}}', String(labels.length)).replace('{{labels}}', labels.join('\n'));
+    const what = labels.length === 1 ? 'the label' : `${labels.length} labels`;
+    return LABEL_PAGE.replaceAll('{{what}}', what).replace('{{labels}}', labels.join('\n'));
   });
 }
 
@@ -301,7 +302,7 @@ const LABEL_PAGE = `<!doctype html>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>{{count}} OpenRelay labels</title>
+<title>Print {{what}} · OpenRelay</title>
 <style>
   @page { size: 100mm 150mm; margin: 0; }
   * { box-sizing: border-box; }
@@ -328,7 +329,7 @@ const LABEL_PAGE = `<!doctype html>
 </style>
 </head>
 <body>
-<div class="bar"><button type="button" onclick="print()">Print {{count}} label(s)</button>
+<div class="bar"><button type="button" onclick="print()">Print {{what}}</button>
 <span>100 × 150 mm, one per page.</span></div>
 {{labels}}
 </body>

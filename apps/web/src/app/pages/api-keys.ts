@@ -1,0 +1,231 @@
+import { ChangeDetectionStrategy, Component, computed, effect, inject, input, signal } from '@angular/core';
+import { FormsModule } from '@angular/forms';
+import type { ApiKey, Merchant, NewApiKey } from '@open-relay/contracts';
+import {
+  Button,
+  Callout,
+  Cell,
+  ConfirmDialog,
+  Control,
+  DataTable,
+  Field,
+  PageHeader,
+  Skeleton,
+  Toaster,
+} from '@openstuff-dev/ui-angular';
+import { Api, errorText } from '../core/api';
+import { IdempotencyKey } from '../core/idempotency';
+import { slowLoading } from '../core/loading';
+import { CopyButton } from '../shared/copy-button';
+import { shortDate } from '../shared/labels';
+
+/** Keys a shop's own system uses to add parcels and find points, until shop plugins exist. */
+@Component({
+  selector: 'app-api-keys',
+  imports: [
+    FormsModule,
+    Button,
+    Callout,
+    Cell,
+    Control,
+    CopyButton,
+    DataTable,
+    Field,
+    PageHeader,
+    Skeleton,
+  ],
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  host: { class: 'stack' },
+  template: `
+    <header
+      os-page-header
+      title="API keys"
+      description="A shop’s webshop or ERP adds parcels with a key. Each key belongs to one shop and only sees its parcels."
+    ></header>
+
+    @if (error(); as error) {
+      <os-callout tone="danger">{{ error }}</os-callout>
+    }
+
+    <form class="inline" (ngSubmit)="create()">
+      <os-field label="Shop">
+        <select os-select name="merchant" required [(ngModel)]="merchantId">
+          @for (m of merchants(); track m.id) {
+            <option [value]="m.id">{{ m.name }}</option>
+          }
+        </select>
+      </os-field>
+      <os-field label="Name" hint="What uses it, e.g. Webshop.">
+        <input os-input name="name" required maxlength="120" [(ngModel)]="name" />
+      </os-field>
+      <button os-button type="submit" [loading]="creating()">Make key</button>
+    </form>
+
+    @if (created(); as k) {
+      <os-callout tone="info" [title]="'Copy the key for ' + k.merchantName + ' now'">
+        <p class="key">
+          <code>{{ k.key }}</code> <app-copy-button [text]="k.key" what="API key" />
+        </p>
+        <p>It’s only shown this once. If it’s lost, delete it and make a new one.</p>
+      </os-callout>
+    }
+
+    @if (keys(); as keys) {
+      <os-data-table
+        caption="API keys"
+        [columns]="columns"
+        [rows]="rows()"
+        rowKey="id"
+        empty="No keys yet."
+      >
+        <ng-template os-cell="name" let-k>
+          {{ k.name }}<span class="os-cell-sub">{{ k.merchantName }}</span>
+        </ng-template>
+        <ng-template os-cell="hint" let-k
+          ><code>{{ k.hint }}…</code></ng-template
+        >
+        <ng-template os-cell="lastUsedAt" let-k>
+          <span class="nums">{{ k.lastUsedAt ? date(k.lastUsedAt) : 'Never' }}</span>
+        </ng-template>
+        <ng-template os-cell="actions" let-k>
+          <button
+            os-button
+            type="button"
+            size="sm"
+            variant="ghost"
+            tone="danger"
+            (click)="remove(k)"
+          >
+            Delete
+          </button>
+        </ng-template>
+      </os-data-table>
+    } @else if (loading.slow()) {
+      <os-skeleton [lines]="3" />
+    }
+
+    <section class="stack">
+      <h2>Use it</h2>
+      <pre><code>{{ example() }}</code></pre>
+      <p class="muted">
+        <code>GET /api/v1/points?postcode=…&amp;city=…</code> lists the nearest open points for a
+        checkout. <code>GET /api/v1/parcels/&#123;code&#125;</code> reads a parcel back.
+      </p>
+    </section>
+  `,
+  styles: `
+    h2 {
+      margin: 0;
+      font-size: var(--os-text-lg);
+    }
+
+    p {
+      margin: 0;
+    }
+
+    .key {
+      display: flex;
+      gap: var(--os-space-2);
+      align-items: center;
+      overflow-wrap: anywhere;
+    }
+
+    pre {
+      margin: 0;
+      padding: var(--os-space-4);
+      overflow-x: auto;
+      border-radius: var(--os-radius-md);
+      background: var(--os-bg-surface-200);
+      font-size: var(--os-text-sm);
+    }
+  `,
+})
+export class ApiKeys {
+  readonly network = input.required<string>();
+  private readonly api = inject(Api);
+  private readonly toaster = inject(Toaster);
+  private readonly confirm = inject(ConfirmDialog);
+  protected readonly keys = signal<ApiKey[] | null>(null);
+  protected readonly merchants = signal<Merchant[]>([]);
+  protected readonly created = signal<NewApiKey | null>(null);
+  protected readonly error = signal<string | null>(null);
+  protected readonly creating = signal(false);
+  protected readonly loading = slowLoading();
+  protected readonly date = shortDate;
+  protected merchantId = '';
+  protected name = 'Webshop';
+  private readonly key = new IdempotencyKey();
+  protected readonly columns = [
+    { key: 'name' as const, label: 'Key' },
+    { key: 'hint' as const, label: 'Starts with' },
+    { key: 'lastUsedAt' as const, label: 'Last used' },
+    { key: 'actions' as const, label: 'Actions', align: 'end' as const },
+  ];
+
+  protected readonly rows = computed(() => (this.keys() ?? []).map((k) => ({ ...k, actions: '' })));
+  protected readonly example = computed(
+    () => `curl ${location.origin}/api/v1/parcels \\
+  -H "Authorization: Bearer ${this.created()?.key ?? 'rk_…'}" \\
+  -H "Content-Type: application/json" \\
+  -d '{"pointId": "…", "reference": "#1042",
+       "customer": {"name": "Mia Jensen", "email": "mia@example.com", "postcode": "2200"}}'`,
+  );
+
+  constructor() {
+    effect(() => {
+      void this.load(this.network());
+    });
+  }
+
+  private get base(): string {
+    return `/api/n/${encodeURIComponent(this.network())}`;
+  }
+
+  protected async create(): Promise<void> {
+    this.creating.set(true);
+    this.error.set(null);
+    try {
+      const k = await this.api.post<NewApiKey>(`${this.base}/api-keys`, { name: this.name, merchantId: this.merchantId }, this.key.value);
+      this.key.renew();
+      this.created.set(k);
+      this.keys.update((list) => [...(list ?? []), k]);
+    } catch (error) {
+      this.error.set(errorText(error));
+    } finally {
+      this.creating.set(false);
+    }
+  }
+
+  protected async remove(k: ApiKey): Promise<void> {
+    const ok = await this.confirm.confirm({
+      title: `Delete ${k.name} of ${k.merchantName}?`,
+      message: 'Whatever uses it stops working at once.',
+      confirmLabel: 'Delete key',
+      danger: true,
+    });
+    if (!ok) return;
+    try {
+      await this.api.delete(`${this.base}/api-keys/${k.id}`);
+      this.keys.update((list) => list?.filter((x) => x.id !== k.id) ?? null);
+      if (this.created()?.id === k.id) this.created.set(null);
+    } catch (error) {
+      this.toaster.show(errorText(error), { tone: 'danger' });
+    }
+  }
+
+  private async load(network: string): Promise<void> {
+    this.error.set(null);
+    const base = `/api/n/${encodeURIComponent(network)}`;
+    try {
+      const [keys, merchants] = await this.loading.track(
+        Promise.all([this.api.get<ApiKey[]>(`${base}/api-keys`), this.api.get<Merchant[]>(`${base}/merchants`)]),
+      );
+      if (network !== this.network()) return;
+      this.keys.set(keys);
+      this.merchants.set(merchants);
+      this.merchantId ||= merchants[0]?.id ?? '';
+    } catch (error) {
+      this.error.set(errorText(error));
+    }
+  }
+}

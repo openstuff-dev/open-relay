@@ -22,3 +22,4 @@ vitest.config.*.timestamp*
 .claude/settings.local.json
 .idea
 .DS_Store
+public/zxing/

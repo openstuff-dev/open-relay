@@ -1,6 +1,6 @@
 import type { FastifyInstance, FastifyRequest } from 'fastify';
 import { z } from 'zod';
-import type { Member, Network, NewMember } from '@open-relay/contracts';
+import type { MembersPage, Network, NewMember } from '@open-relay/contracts';
 import { hashPassword, networkAccess, newPassword, requireAccount } from '../auth.js';
 import { type Pool, withScope } from '../db.js';
 import { HttpError } from '../errors.js';
@@ -66,15 +66,23 @@ export function registerNetworkRoutes(app: FastifyInstance, pool: Pool): void {
 
   // Members --------------------------------------------------------------------------------
 
-  app.get('/api/n/:network/members', async (request): Promise<Member[]> => {
+  app.get('/api/n/:network/members', async (request): Promise<MembersPage> => {
     const { network } = networkParam.parse(request.params);
     const access = await networkAccess(pool, request, network, ['admin']);
-    const { rows } = await pool.query<Member>(
-      `SELECT ${MEMBER} FROM memberships m JOIN accounts a ON a.id = m.account_id
-        WHERE m.network_id = $1 ORDER BY a.name, a.email`,
-      [access.networkId],
-    );
-    return rows;
+    return withScope(pool, { networkId: access.networkId }, async (db) => {
+      const { rows } = await db.query<MembersPage>(
+        `SELECT
+           coalesce((SELECT json_agg(x ORDER BY x.name, x.email) FROM (SELECT ${MEMBER}
+             FROM memberships m JOIN accounts a ON a.id = m.account_id WHERE m.network_id = $1) x),
+             '[]') AS members,
+           coalesce((SELECT json_agg(json_build_object('id', id, 'name', name) ORDER BY name)
+             FROM merchants), '[]') AS merchants,
+           coalesce((SELECT json_agg(json_build_object('id', id, 'name', name) ORDER BY name)
+             FROM points), '[]') AS points`,
+        [access.networkId],
+      );
+      return rows[0];
+    });
   });
 
   /** Adds someone by email. A new account gets a password, shown this once. */

@@ -37,6 +37,13 @@ export interface Member {
   pointId: string | null;
 }
 
+/** The members page in one request: the members, and the shops and points they can work at. */
+export interface MembersPage {
+  members: Member[];
+  merchants: { id: string; name: string }[];
+  points: { id: string; name: string }[];
+}
+
 /** Returned once, when an account is made for a new member. */
 export interface NewMember extends Member {
   password: string | null;

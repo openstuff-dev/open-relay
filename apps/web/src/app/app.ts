@@ -1,15 +1,10 @@
 import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
-import { Page } from '@openstuff-dev/ui-angular';
 
 @Component({
   selector: 'app-root',
-  imports: [RouterOutlet, Page],
+  imports: [RouterOutlet],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  template: `
-    <main os-page>
-      <router-outlet />
-    </main>
-  `,
+  template: `<router-outlet />`,
 })
 export class App {}

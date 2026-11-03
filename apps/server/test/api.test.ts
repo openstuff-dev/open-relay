@@ -73,7 +73,11 @@ describe.skipIf(!url)('API against Postgres', () => {
     withScope(pool, { bypass: true }, async (db) => (await db.query<T>(text, values)).rows);
 
   async function newParcel(pointSlug = 'corner-shop'): Promise<ParcelRow> {
-    const [point] = await sql<{ id: string }>('SELECT id FROM points WHERE slug = $1', [pointSlug]);
+    const [point] = await sql<{ id: string }>(
+      `SELECT p.id FROM points p JOIN networks n ON n.id = p.network_id
+        WHERE n.slug = 'demo' AND p.slug = $1`,
+      [pointSlug],
+    );
     const created = await call<ParcelRow>(as.merchant, 'POST', `${n}/parcels`, {
       pointId: point.id,
       reference: '#T1',
