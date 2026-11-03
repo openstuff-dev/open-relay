@@ -11,11 +11,20 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
+    "@fastify/cookie": "^11.1.5",
     "@fastify/static": "^10.1.7",
-    "fastify": "^5.12.7"
+    "@open-relay/contracts": "*",
+    "fastify": "^5.12.7",
+    "nodemailer": "^10.3.1",
+    "pg": "^8.23.1",
+    "qrcode": "^1.5.4",
+    "zod": "^4.6.6"
   },
   "devDependencies": {
     "@types/node": "^24.0.0",
+    "@types/nodemailer": "^8.0.2",
+    "@types/pg": "^8.23.1",
+    "@types/qrcode": "^1.5.6",
     "tsx": "^4.23.15",
     "typescript": "~6.0.3",
     "vitest": "^5.0.1"

@@ -122,6 +122,9 @@ export interface ParcelInput {
   customer: Customer;
 }
 
+/** What a shop sends through the API: the merchant comes from its key. */
+export type ApiParcelInput = Omit<ParcelInput, 'merchantId'>;
+
 export interface ParcelRow {
   id: string;
   code: string;
@@ -149,16 +152,10 @@ export interface Scan {
 export interface Parcel extends ParcelRow {
   /** Null once the customer's details were deleted. */
   customer: Customer | null;
-  trackingUrl: string;
+  /** For admins and the shop, to share with the customer; null for others. */
+  trackingUrl: string | null;
   createdAt: string;
   scans: Scan[];
-}
-
-/**
- * Returned once, when a parcel is made. Otherwise the pickup code is only in the customer's email.
- */
-export interface NewParcel extends Parcel {
-  pickupCode: string;
 }
 
 /** The parcels page in one request: a page of parcels and what the filters offer. */

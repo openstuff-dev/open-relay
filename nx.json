@@ -19,10 +19,16 @@
       ]
     },
     "test": {
-      "cache": true
+      "cache": true,
+      "dependsOn": [
+        "^build"
+      ]
     },
     "typecheck": {
-      "cache": true
+      "cache": true,
+      "dependsOn": [
+        "^build"
+      ]
     },
     "lint": {
       "cache": true,
@@ -35,6 +41,9 @@
             "@openstuff-dev/lint"
           ]
         }
+      ],
+      "dependsOn": [
+        "^build"
       ]
     },
     "stylelint": {
