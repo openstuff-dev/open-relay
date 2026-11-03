@@ -1,8 +1,54 @@
 services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: openrelay
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-openrelay}
+      POSTGRES_DB: openrelay
+    volumes:
+      - openrelay-db:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U openrelay']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
   app:
     build: .
+    depends_on:
+      db:
+        condition: service_healthy
     environment:
+      DATABASE_URL: postgres://openrelay:${POSTGRES_PASSWORD:-openrelay}@db:5432/openrelay
       LOG_LEVEL: ${LOG_LEVEL:-info}
+      # Where people reach OpenRelay: label QR codes and email links point here. See the README.
+      OPENRELAY_PUBLIC_URL: ${OPENRELAY_PUBLIC_URL:-http://localhost:8080}
+      # The first admin. Without a password, one is made and shown once in the log.
+      OPENRELAY_ADMIN_EMAIL: ${OPENRELAY_ADMIN_EMAIL:-admin@example.com}
+      OPENRELAY_ADMIN_PASSWORD: ${OPENRELAY_ADMIN_PASSWORD:-}
+      OPENRELAY_SESSION_DAYS: ${OPENRELAY_SESSION_DAYS:-30}
+      # The customers' emails. Empty: they go to the log. See the README.
+      OPENRELAY_SMTP_URL: ${OPENRELAY_SMTP_URL:-}
+      OPENRELAY_MAIL_FROM: ${OPENRELAY_MAIL_FROM:-OpenRelay <noreply@localhost>}
+      OPENRELAY_HOLD_DAYS: ${OPENRELAY_HOLD_DAYS:-14}
+      OPENRELAY_RETENTION_DAYS: ${OPENRELAY_RETENTION_DAYS:-90}
+      # A Nominatim-compatible search URL, to offer the nearest points. See the README.
+      OPENRELAY_GEOCODER_URL: ${OPENRELAY_GEOCODER_URL:-}
+      # Behind a reverse proxy: true, or the proxy's addresses. See the README.
+      OPENRELAY_TRUST_PROXY: ${OPENRELAY_TRUST_PROXY:-}
     ports:
       - '${PORT:-8080}:8080'
     restart: unless-stopped
+
+  # Catches every email, to read at http://localhost:8025. Only with --profile mail, and with
+  # OPENRELAY_SMTP_URL=smtp://mailpit:1025. Never on a real server: customers get nothing.
+  mailpit:
+    image: axllent/mailpit
+    profiles: [mail]
+    ports:
+      - '8025:8025'
+    restart: unless-stopped
+
+volumes:
+  openrelay-db:
