@@ -22,4 +22,6 @@ vitest.config.*.timestamp*
 .claude/settings.local.json
 .idea
 .DS_Store
-public/zxing/
+
+# Copied from zxing-wasm before builds (apps/web/copy-zxing.mjs).
+apps/web/public/zxing/
