@@ -1,0 +1,36 @@
+{
+  "name": "@open-relay/contracts",
+  "version": "0.0.0",
+  "type": "module",
+  "private": true,
+  "description": "The types and the parcel journey shared by the OpenRelay server and web app. Not published.",
+  "license": "MIT",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "vitest run",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "devDependencies": {
+    "typescript": "~6.0.3",
+    "vitest": "^5.0.1"
+  },
+  "nx": {
+    "name": "contracts",
+    "tags": [
+      "type:package"
+    ],
+    "targets": {
+      "build": {
+        "outputs": [
+          "{projectRoot}/dist"
+        ]
+      }
+    }
+  }
+}
