@@ -1,0 +1,913 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>OpenRelay: Parcels to a pick-up point near your customers</title>
+    <meta
+      name="description"
+      content="OpenRelay takes parcels from online shops to a pick-up point near the customer. Every hand-off is one scan of one QR code, and the customer gets an email at each step. Open source and self-hostable."
+    />
+    <meta name="color-scheme" content="dark light" />
+    <link rel="canonical" href="https://relay.openstuff.dev/" />
+    <link rel="icon" href="favicon.svg" type="image/svg+xml" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="OpenRelay" />
+    <meta property="og:title" content="OpenRelay: Parcels to a pick-up point near your customers" />
+    <meta
+      property="og:description"
+      content="One QR code per parcel, every hand-off scanned, and customers who always know where their parcel is. Open source, MIT, self-hostable."
+    />
+    <meta property="og:url" content="https://relay.openstuff.dev/" />
+    <meta property="og:image" content="https://relay.openstuff.dev/assets/og.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta
+      property="og:image:alt"
+      content="OpenRelay: Parcels to a pick-up point near your customers"
+    />
+    <meta name="twitter:card" content="summary_large_image" />
+    <link
+      rel="preload"
+      href="assets/os/fonts/Geist-Variable.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
+    <link rel="stylesheet" href="assets/site.css" />
+    <script type="module" src="assets/site.js"></script>
+  </head>
+  <body class="os-site">
+    <svg width="0" height="0" style="position: absolute" aria-hidden="true" focusable="false">
+      <symbol id="i-check" viewBox="0 0 16 16">
+        <path
+          d="M3.5 8.5l3 3 6-7"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.6"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        />
+      </symbol>
+      <symbol id="i-x" viewBox="0 0 16 16">
+        <path
+          d="M4.5 4.5l7 7m0-7l-7 7"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.6"
+          stroke-linecap="round"
+        />
+      </symbol>
+      <symbol id="i-dash" viewBox="0 0 16 16">
+        <path
+          d="M4 8h8"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.6"
+          stroke-linecap="round"
+        />
+      </symbol>
+      <symbol id="i-copy" viewBox="0 0 16 16">
+        <g fill="none" stroke="currentColor" stroke-width="1.4">
+          <rect x="5.5" y="5.5" width="8" height="8" rx="1.5" />
+          <path
+            d="M10.5 3.5v-.5a1.5 1.5 0 0 0-1.5-1.5H4A1.5 1.5 0 0 0 2.5 3v5A1.5 1.5 0 0 0 4 9.5h.5"
+          />
+        </g>
+      </symbol>
+      <symbol id="i-github" viewBox="0 0 16 16">
+        <path
+          fill="currentColor"
+          d="M8 .2a8 8 0 0 0-2.53 15.59c.4.07.55-.17.55-.38v-1.33c-2.23.48-2.7-1.07-2.7-1.07-.36-.92-.89-1.17-.89-1.17-.73-.5.05-.49.05-.49.8.06 1.23.83 1.23.83.72 1.22 1.87.87 2.33.66.07-.52.28-.87.5-1.07-1.78-.2-3.65-.89-3.65-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.6 7.6 0 0 1 4 0c1.53-1.03 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.28.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48v2.2c0 .21.15.46.55.38A8 8 0 0 0 8 .2z"
+        />
+      </symbol>
+      <symbol id="i-arrow" viewBox="0 0 16 16">
+        <path
+          d="M3 8h10m-4-4 4 4-4 4"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.6"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        />
+      </symbol>
+      <symbol id="i-menu" viewBox="0 0 16 16">
+        <path
+          d="M2.5 4.5h11m-11 4h11m-11 4h11"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.5"
+          stroke-linecap="round"
+        />
+      </symbol>
+      <symbol id="i-warn" viewBox="0 0 16 16">
+        <g fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round">
+          <path d="M8 2 14.5 13.5h-13z" />
+          <path d="M8 6.5v3" stroke-linecap="round" />
+        </g>
+        <circle cx="8" cy="11.6" r=".8" fill="currentColor" />
+      </symbol>
+      <symbol id="i-layers" viewBox="0 0 20 20">
+        <g fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round">
+          <path d="M10 2.5 17.5 6.5 10 10.5 2.5 6.5z" />
+          <path d="m2.5 10 7.5 4 7.5-4M2.5 13.5l7.5 4 7.5-4" />
+        </g>
+      </symbol>
+      <symbol id="i-building" viewBox="0 0 20 20">
+        <g fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round">
+          <rect x="3.5" y="2.5" width="9" height="15" rx="1" />
+          <path d="M12.5 7.5h3a1 1 0 0 1 1 1v9h-4M6.5 6h3M6.5 9h3M6.5 12h3" />
+        </g>
+      </symbol>
+      <symbol id="i-shield" viewBox="0 0 20 20">
+        <g fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round">
+          <path d="M10 2.5 16 5v5c0 3.6-2.5 6.3-6 7.5C6.5 16.3 4 13.6 4 10V5z" />
+          <path d="m7.5 10 2 2 3.5-4" stroke-linecap="round" />
+        </g>
+      </symbol>
+      <symbol id="i-users" viewBox="0 0 20 20">
+        <g fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+          <circle cx="7.5" cy="7" r="3" />
+          <path d="M2.5 16.5c.6-2.6 2.6-4 5-4s4.4 1.4 5 4" />
+          <path d="M13 4.3a3 3 0 0 1 0 5.4M14.5 12.8c1.4.5 2.5 1.8 3 3.7" />
+        </g>
+      </symbol>
+      <symbol id="i-key" viewBox="0 0 20 20">
+        <g
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.5"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <circle cx="6.5" cy="13.5" r="3.5" />
+          <path d="m9 11 7.5-7.5M14 6l2 2M12 8l1.5 1.5" />
+        </g>
+      </symbol>
+      <symbol id="i-swap" viewBox="0 0 20 20">
+        <g
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.5"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <path d="M4 7h12m-3-3 3 3-3 3M16 13H4m3-3-3 3 3 3" />
+        </g>
+      </symbol>
+      <symbol id="i-qr" viewBox="0 0 20 20">
+        <g fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round">
+          <rect x="3" y="3" width="5" height="5" rx="1" />
+          <rect x="12" y="3" width="5" height="5" rx="1" />
+          <rect x="3" y="12" width="5" height="5" rx="1" />
+          <path d="M12 12h2v2h-2zM15 15h2v2h-2zM12 16.5v.5M16.5 12h.5" stroke-linecap="round" />
+        </g>
+      </symbol>
+      <symbol id="i-mail" viewBox="0 0 20 20">
+        <g fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round">
+          <rect x="2.5" y="4.5" width="15" height="11" rx="1.5" />
+          <path d="m3 5.5 7 5.5 7-5.5" stroke-linecap="round" />
+        </g>
+      </symbol>
+      <symbol id="i-lock" viewBox="0 0 20 20">
+        <g fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round">
+          <rect x="4" y="9" width="12" height="8.5" rx="1.5" />
+          <path d="M7 9V6.5a3 3 0 0 1 6 0V9" />
+        </g>
+      </symbol>
+    </svg>
+
+    <a class="os-skip-link" href="#main">Skip to content</a>
+
+    <!-- 1. Top bar -->
+    <header class="os-topbar">
+      <div class="os-wrap">
+        <a class="os-brand" href="./" aria-label="OpenRelay home">
+          <svg class="os-mark" aria-hidden="true">
+            <use href="assets/logo.svg#mark-open-relay" />
+          </svg>
+          <span class="os-wordmark" aria-hidden="true">Open<b>Relay</b></span>
+        </a>
+        <nav class="os-nav" aria-label="Main">
+          <a href="#features">Features</a>
+          <a href="#how">How it works</a>
+          <a href="#self-host">Self-host</a>
+          <a href="https://github.com/openstuff-dev/open-relay">GitHub</a>
+        </nav>
+        <div class="os-topbar-actions">
+          <a class="os-button" data-variant="primary" href="#self-host">Self-host it</a>
+          <button
+            class="os-button os-menu-button"
+            data-variant="ghost"
+            data-icon-only
+            popovertarget="os-menu"
+            aria-label="Open menu"
+          >
+            <svg class="os-icon" aria-hidden="true"><use href="#i-menu" /></svg>
+          </button>
+        </div>
+      </div>
+      <nav id="os-menu" class="os-menu" popover aria-label="Mobile">
+        <a href="#features">Features</a>
+        <a href="#how">How it works</a>
+        <a href="#self-host">Self-host</a>
+        <a href="https://github.com/openstuff-dev/open-relay">GitHub</a>
+      </nav>
+    </header>
+
+    <main id="main">
+      <!-- 2. Hero -->
+      <section class="os-hero" aria-labelledby="hero-title">
+        <div class="os-wrap">
+          <div class="os-hero-copy">
+            <a class="os-pill" href="https://github.com/openstuff-dev/open-relay"
+              ><b>MIT</b> Open source and self-hostable</a
+            >
+            <h1 id="hero-title">
+              Parcels to a pick-up point<span class="os-soft">near your customers.</span>
+            </h1>
+            <p class="os-hero-sub">
+              OpenRelay runs a delivery network of shops, couriers and pick-up points. Every parcel
+              gets one QR code, every hand-off is one scan, and the customer gets an email at each
+              step.
+            </p>
+            <div class="os-cta-row">
+              <a class="os-button" data-size="lg" data-variant="primary" href="#self-host"
+                >Self-host it <svg class="os-icon" aria-hidden="true"><use href="#i-arrow" /></svg
+              ></a>
+              <a class="os-button" data-size="lg" href="#how">How it works</a>
+            </div>
+            <p class="os-hero-meta">
+              <span>Open source</span> · <span>MIT</span> ·
+              <span>Works on any phone, no app to install</span>
+            </p>
+          </div>
+
+          <figure
+            class="os-hero-visual"
+            aria-label="A customer's tracking page: the parcel from Nordic Knits is ready to collect at Corner Shop, with a pickup code"
+          >
+            <div class="relay-track">
+              <div class="relay-track-head">
+                <span>Your parcel from <b>Nordic Knits</b></span>
+                <span class="os-badge" data-tone="success">Ready to collect</span>
+              </div>
+              <ol class="relay-steps">
+                <li data-done><b>On its way to Corner Shop</b><small>Mon 2 Nov, 14:08</small></li>
+                <li data-done>
+                  <b>Out for delivery</b><small>Tue 3 Nov, 09:41 · Jonas, courier</small>
+                </li>
+                <li data-done data-now>
+                  <b>Ready to collect</b
+                  ><small>Tue 3 Nov, 11:20 · Corner Shop, Nørrebrogade 12</small>
+                </li>
+                <li><b>Collected</b><small>Waits for you until 17 Nov</small></li>
+              </ol>
+              <div class="relay-code">
+                <span>Show this code at the counter</span>
+                <b class="relay-digits">482 913</b>
+              </div>
+            </div>
+          </figure>
+        </div>
+      </section>
+
+      <!-- 3. The problem -->
+      <section class="os-section" data-divider aria-labelledby="problem-title">
+        <div class="os-wrap">
+          <div class="os-section-head">
+            <span class="os-eyebrow">The problem</span>
+            <h2 id="problem-title">Three people, three answers.</h2>
+            <p class="os-lede">
+              The shop keeps a spreadsheet, the courier a paper list, and the pick-up point a
+              notebook behind the counter. When the customer asks where their parcel is, each of
+              them says something different.
+            </p>
+          </div>
+
+          <div class="os-files">
+            <figure class="os-file">
+              <figcaption class="os-file-head">
+                <span><b>shop</b>/orders.xlsx</span><small>updated Monday</small>
+              </figcaption>
+              <ol>
+                <li>Order #1042, Mia Jensen</li>
+                <li data-drift="still says">Sent to Corner Shop</li>
+                <li>Paid, packed</li>
+              </ol>
+            </figure>
+            <figure class="os-file">
+              <figcaption class="os-file-head">
+                <span><b>courier</b>/round.pdf</span><small>printed this morning</small>
+              </figcaption>
+              <ol>
+                <li>Order #1042, Mia Jensen</li>
+                <li data-drift="ticked by hand">Delivered</li>
+                <li>Paid, packed</li>
+              </ol>
+            </figure>
+            <figure class="os-file">
+              <figcaption class="os-file-head">
+                <span><b>Corner Shop</b>/notebook</span><small>no entry</small>
+              </figcaption>
+              <ol>
+                <li>Order #1042, Mia Jensen</li>
+                <li data-gone>Arrived</li>
+                <li>Paid, packed</li>
+              </ol>
+            </figure>
+          </div>
+          <div class="os-notes">
+            <p><b>Customers call the shop.</b>Nobody told them the parcel arrived, or where.</p>
+            <p><b>Nobody knows who had it last.</b>A tick on paper doesn’t say when, or by whom.</p>
+            <p><b>Anyone can collect it.</b>A name is easy to guess at a busy counter.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- 4. Bento grid -->
+      <section class="os-section" data-divider id="features" aria-labelledby="features-title">
+        <div class="os-wrap">
+          <div class="os-section-head">
+            <span class="os-eyebrow">Features</span>
+            <h2 id="features-title">Scan it at every hand-off. Everyone knows where it is.</h2>
+            <p class="os-lede">
+              One scan records who had the parcel and when, moves it to its next step, and tells the
+              customer.
+            </p>
+          </div>
+
+          <div class="os-bento">
+            <article
+              class="os-tile"
+              data-span="2"
+              data-rows="2"
+              data-size="lg"
+              tabindex="0"
+              aria-labelledby="t-main"
+            >
+              <span class="os-tile-tag">The heart of OpenRelay</span>
+              <div class="os-viz" data-layout="split" aria-hidden="true">
+                <div class="os-viz-list">
+                  <p class="os-viz-bubble">
+                    <span class="os-viz-who">Jonas, courier</span>Scans <b>7K3M-Q9XD</b> at Nordic
+                    Knits
+                  </p>
+                  <p class="os-viz-who" data-play="fade" style="--os-play-delay: 60ms">
+                    → courier at the shop: so it’s on its way
+                  </p>
+                  <div class="os-viz-panel" data-play="rise" style="--os-play-delay: 160ms">
+                    <div class="os-viz-panel-head">
+                      <b>On its way to Corner Shop</b
+                      ><span class="os-badge" data-tone="brand">in transit</span>
+                    </div>
+                    <div class="os-viz-panel-body">
+                      <span class="os-viz-add">Undo for 5 minutes</span>
+                    </div>
+                    <div class="os-viz-panel-foot">
+                      <span class="os-viz-avatar">MJ</span>Mia, the customer
+                      <span
+                        class="os-badge"
+                        data-tone="success"
+                        data-play="pop"
+                        style="--os-play-delay: 620ms"
+                        >✓ emailed</span
+                      >
+                    </div>
+                  </div>
+                </div>
+                <ul class="os-viz-list">
+                  <li class="os-viz-list-head"><span>Parcel 7K3M-Q9XD</span><span>3</span></li>
+                  <li class="os-viz-row" data-new data-play="grow" style="--os-play-delay: 900ms">
+                    09:41 · On its way · Jonas
+                  </li>
+                  <li class="os-viz-row">09:12 · Ready at the shop · Sara</li>
+                  <li class="os-viz-row">Mon 14:08 · Registered · Nordic Knits</li>
+                </ul>
+              </div>
+              <h3 id="t-main">One QR code, and the scanner decides the step</h3>
+              <p>
+                The shop, the courier and the pick-up point all scan the same label. OpenRelay knows
+                who they are, so each scan is the right next step, and the customer hears about it
+                at once.
+              </p>
+            </article>
+
+            <article class="os-tile" tabindex="0" aria-labelledby="t-plates">
+              <div class="os-viz" aria-hidden="true">
+                <div class="os-viz-plates">
+                  <div class="os-viz-plate" style="--i: 0">
+                    <span>Registered</span><span>the shop</span>
+                  </div>
+                  <div class="os-viz-plate" style="--i: 1">
+                    <span>Ready</span><span>shop staff</span>
+                  </div>
+                  <div class="os-viz-plate" style="--i: 2">
+                    <span>On its way</span><span>courier</span>
+                  </div>
+                  <div class="os-viz-plate" data-current style="--i: 3">
+                    <span>Ready to collect</span><span>the point</span>
+                  </div>
+                </div>
+              </div>
+              <h3 id="t-plates">A clear journey for every parcel</h3>
+              <p>Five steps, each one made by the person who has the parcel in their hands.</p>
+            </article>
+
+            <article class="os-tile" tabindex="0" aria-labelledby="t-tree">
+              <div class="os-viz" aria-hidden="true">
+                <ul class="os-viz-tree">
+                  <li>Mia, 2200 Copenhagen</li>
+                  <li data-play="highlight" style="--d: 0; --depth: 1">Corner Shop 0.4 km</li>
+                  <li data-play="dim" style="--depth: 1">Station Kiosk 1.9 km</li>
+                  <li data-play="dim" style="--depth: 1">Harbour Books 3.2 km</li>
+                </ul>
+              </div>
+              <h3 id="t-tree">The nearest point, picked for you</h3>
+              <p>
+                Enter the customer’s address and OpenRelay suggests the pick-up points closest to
+                it.
+              </p>
+            </article>
+
+            <article class="os-tile" tabindex="0" aria-labelledby="t-flip">
+              <div class="os-viz" aria-hidden="true">
+                <div class="os-viz-list" style="inline-size: min(100%, 17rem)">
+                  <div class="os-viz-panel-foot" style="border: 0; justify-content: flex-end">
+                    At the counter <span class="os-viz-switch"></span>
+                  </div>
+                  <div class="os-viz-flip">
+                    <div class="os-viz-face">
+                      <b>Ready to collect at Corner Shop</b>
+                      <p>Bring the code from your email.</p>
+                    </div>
+                    <div class="os-viz-face">Pickup code 482 913 ✓ handed over to Mia</div>
+                  </div>
+                </div>
+              </div>
+              <h3 id="t-flip">Only the customer can collect it</h3>
+              <p>
+                The customer gets a 6-digit pickup code that staff never see. No code, no parcel.
+              </p>
+            </article>
+
+            <article class="os-tile" tabindex="0" aria-labelledby="t-wires">
+              <div class="os-viz" aria-hidden="true">
+                <svg class="os-viz-wires" viewBox="0 0 320 170">
+                  <g>
+                    <rect x="8" y="12" width="96" height="28" rx="6" />
+                    <text x="56" y="30" text-anchor="middle">A form</text>
+                  </g>
+                  <g>
+                    <rect x="8" y="71" width="96" height="28" rx="6" />
+                    <text x="56" y="89" text-anchor="middle">A CSV file</text>
+                  </g>
+                  <g>
+                    <rect x="8" y="130" width="96" height="28" rx="6" />
+                    <text x="56" y="148" text-anchor="middle">Your shop</text>
+                  </g>
+                  <path class="os-viz-wire" d="M104 26C150 26 160 85 206 85" />
+                  <path class="os-viz-wire" d="M104 85H206" />
+                  <path class="os-viz-wire" d="M104 144C150 144 160 85 206 85" />
+                  <path data-play="pulse" style="--d: 0" d="M104 26C150 26 160 85 206 85" />
+                  <path data-play="pulse" style="--d: 1" d="M104 85H206" />
+                  <path data-play="pulse" style="--d: 2" d="M104 144C150 144 160 85 206 85" />
+                  <g data-node>
+                    <rect x="206" y="64" width="106" height="42" rx="8" />
+                    <text x="259" y="89" text-anchor="middle">OpenRelay</text>
+                  </g>
+                </svg>
+              </div>
+              <h3 id="t-wires">Parcels in, however the shop works</h3>
+              <p>
+                Type one in, upload a spreadsheet of orders, or send them from the shop’s own
+                system.
+              </p>
+            </article>
+
+            <article class="os-tile" tabindex="0" aria-labelledby="t-file">
+              <div class="os-viz" data-layout="stack" aria-hidden="true">
+                <span
+                  class="os-badge"
+                  data-tone="warning"
+                  data-play="dim"
+                  style="justify-self: center"
+                  ><svg class="os-icon" aria-hidden="true"><use href="#i-warn" /></svg>Scanned at
+                  Station Kiosk</span
+                >
+                <div class="os-viz-panel">
+                  <div class="os-viz-panel-head"><b>Not received</b><span>7K3M-Q9XD</span></div>
+                  <ul class="os-viz-list os-viz-panel-body">
+                    <li
+                      class="os-viz-row"
+                      data-tone="warning"
+                      data-play="grow"
+                      style="--os-play-delay: 220ms"
+                    >
+                      This parcel goes to Corner Shop, not here
+                    </li>
+                    <li class="os-viz-row">Give it back to the courier</li>
+                  </ul>
+                </div>
+              </div>
+              <h3 id="t-file">A wrong scan says why</h3>
+              <p>
+                Dropped at the wrong point, or scanned twice? Staff see what happened and what to do
+                instead.
+              </p>
+            </article>
+
+            <article class="os-tile" tabindex="0" aria-labelledby="t-hold">
+              <div class="os-viz" aria-hidden="true">
+                <div class="os-viz-list" style="inline-size: min(100%, 17rem)">
+                  <div class="os-viz-list-head">
+                    <span>At Corner Shop</span><span>12 of 14 days</span>
+                  </div>
+                  <div class="os-viz-meter" data-play="fill" style="--value: 86%; --rest: 0%">
+                    <i></i>
+                  </div>
+                  <p class="os-viz-bubble" data-play="rise" style="--os-play-delay: 500ms">
+                    <span class="os-viz-who">to Mia</span>Your parcel waits 2 more days
+                  </p>
+                </div>
+              </div>
+              <h3 id="t-hold">A nudge before the deadline</h3>
+              <p>Parcels wait 14 days, and the customer gets a reminder 2 days before the end.</p>
+            </article>
+
+            <article class="os-tile" data-span="2" tabindex="0" aria-labelledby="t-type">
+              <div class="os-viz" data-layout="stack" aria-hidden="true">
+                <div class="os-term">
+                  <div class="os-term-bar">
+                    <span class="os-term-dots"><i></i><i></i><i></i></span
+                    ><span class="os-term-title">~/open-relay</span>
+                  </div>
+                  <pre><code><span class="os-c-mut">$ </span><span data-play="type" style="--chars: 20">docker compose up -d</span><span class="os-viz-caret"></span>
+<span class="os-c-ok" data-play="rise" style="--os-play-delay: 700ms">✔ db, app started</span>
+<span class="os-c-mut" data-play="rise" style="--os-play-delay: 860ms">→ open http://localhost:8080</span></code></pre>
+                </div>
+              </div>
+              <h3 id="t-type">Your own network, in one command</h3>
+              <p>
+                One Docker image and Postgres, configured with environment variables, with a
+                sensible default for every setting.
+              </p>
+            </article>
+          </div>
+
+          <div class="os-also">
+            <div>
+              <h3>Labels ready to print</h3>
+              <p>One label or a whole day’s orders, sized for a standard label printer.</p>
+            </div>
+            <div>
+              <h3>Undo for 5 minutes</h3>
+              <p>Scanned the wrong parcel? Undo your own scan and the parcel goes back a step.</p>
+            </div>
+            <div>
+              <h3>Customer details expire</h3>
+              <p>Names and addresses are deleted 90 days after collection. The scans stay.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 5. How it works -->
+      <section class="os-section" data-divider id="how" aria-labelledby="how-title">
+        <div class="os-wrap">
+          <div class="os-section-head" data-align="center">
+            <span class="os-eyebrow">How it works</span>
+            <h2 id="how-title">From the shop’s shelf to the customer’s hands.</h2>
+          </div>
+          <ol class="os-steps">
+            <li class="os-step">
+              <span class="os-step-n">1</span>
+              <h3>Set up your network</h3>
+              <p>
+                Run OpenRelay on your own server, then add your shops, your pick-up points and the
+                people who work at them.
+              </p>
+              <div class="os-term">
+                <div class="os-term-bar">
+                  <span class="os-term-dots" aria-hidden="true"><i></i><i></i><i></i></span
+                  ><span class="os-term-title">terminal</span
+                  ><button class="os-copy" type="button" data-copy="code-run">
+                    <svg aria-hidden="true"><use href="#i-copy" /></svg><span>Copy</span>
+                  </button>
+                </div>
+                <pre><code id="code-run"><span class="os-c-mut">$ </span>git clone https://github.com/openstuff-dev/open-relay
+<span class="os-c-mut">$ </span>cd open-relay &amp;&amp; docker compose up -d</code></pre>
+              </div>
+            </li>
+            <li class="os-step">
+              <span class="os-step-n">2</span>
+              <h3>Shops add parcels</h3>
+              <p>
+                The shop adds the order, picks the point nearest the customer and sticks the printed
+                label on the box. The customer gets a tracking link.
+              </p>
+            </li>
+            <li class="os-step">
+              <span class="os-step-n">3</span>
+              <h3>Scan at every hand-off</h3>
+              <p>
+                Shop, courier and point scan the label with a phone or a handheld scanner. The
+                customer collects it with their pickup code.
+              </p>
+            </li>
+          </ol>
+        </div>
+      </section>
+
+      <!-- 6. Why -->
+      <section class="os-section" data-divider aria-labelledby="why-title">
+        <div class="os-wrap">
+          <div class="os-section-head">
+            <span class="os-eyebrow">Why OpenRelay</span>
+            <h2 id="why-title">Better than phone calls and lists on paper.</h2>
+          </div>
+          <div class="os-compare-box">
+            <table class="os-compare">
+              <thead>
+                <tr>
+                  <th scope="col"><span class="os-visually-hidden">What matters</span></th>
+                  <th scope="col">Spreadsheets, paper lists and phone calls</th>
+                  <th scope="col" data-us>OpenRelay</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <th scope="row">The customer knows where it is</th>
+                  <td>
+                    <span class="os-yn" data-answer="no"
+                      ><svg aria-hidden="true"><use href="#i-x" /></svg>No</span
+                    >They call the shop, who calls the point.
+                  </td>
+                  <td data-us>
+                    <span class="os-yn" data-answer="yes"
+                      ><svg aria-hidden="true"><use href="#i-check" /></svg>Yes</span
+                    >An email at every step, and a tracking page.
+                  </td>
+                </tr>
+                <tr>
+                  <th scope="row">You know who had it last</th>
+                  <td>
+                    <span class="os-yn" data-answer="partly"
+                      ><svg aria-hidden="true"><use href="#i-dash" /></svg>Partly</span
+                    >If somebody wrote it down.
+                  </td>
+                  <td data-us>
+                    <span class="os-yn" data-answer="yes"
+                      ><svg aria-hidden="true"><use href="#i-check" /></svg>Yes</span
+                    >Every scan says who, where and when.
+                  </td>
+                </tr>
+                <tr>
+                  <th scope="row">Only the right person collects it</th>
+                  <td>
+                    <span class="os-yn" data-answer="partly"
+                      ><svg aria-hidden="true"><use href="#i-dash" /></svg>Partly</span
+                    >Staff ask for a name, or ID if there’s time.
+                  </td>
+                  <td data-us>
+                    <span class="os-yn" data-answer="yes"
+                      ><svg aria-hidden="true"><use href="#i-check" /></svg>Yes</span
+                    >A pickup code only the customer has.
+                  </td>
+                </tr>
+                <tr>
+                  <th scope="row">You own the data</th>
+                  <td>
+                    <span class="os-yn" data-answer="yes"
+                      ><svg aria-hidden="true"><use href="#i-check" /></svg>Yes</span
+                    >Spread over files and notebooks.
+                  </td>
+                  <td data-us>
+                    <span class="os-yn" data-answer="yes"
+                      ><svg aria-hidden="true"><use href="#i-check" /></svg>Yes</span
+                    >On your server, and you can export all of it.
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- 7. Open source -->
+      <section class="os-section" data-divider id="self-host" aria-labelledby="oss-title">
+        <div class="os-wrap os-split">
+          <div>
+            <span class="os-eyebrow">Open source</span>
+            <h2 id="oss-title">Read the code, run it, change it.</h2>
+            <ul class="os-checklist">
+              <li>
+                <svg aria-hidden="true"><use href="#i-check" /></svg
+                ><span><b>MIT licence.</b> Use it for your network, fork it, sell it.</span>
+              </li>
+              <li>
+                <svg aria-hidden="true"><use href="#i-check" /></svg
+                ><span><b>One Docker image.</b> Configured with environment variables.</span>
+              </li>
+              <li>
+                <svg aria-hidden="true"><use href="#i-check" /></svg
+                ><span><b>Your data.</b> On your servers, exportable at any time.</span>
+              </li>
+            </ul>
+            <div class="os-cta-row">
+              <a
+                class="os-button"
+                data-variant="primary"
+                href="https://github.com/openstuff-dev/open-relay"
+                ><svg class="os-icon" aria-hidden="true"><use href="#i-github" /></svg>View on
+                GitHub</a
+              >
+              <a class="os-button" href="https://github.com/openstuff-dev/open-relay#readme"
+                >Self-hosting guide</a
+              >
+            </div>
+          </div>
+          <div>
+            <div class="os-term">
+              <div class="os-term-bar">
+                <span class="os-term-dots" aria-hidden="true"><i></i><i></i><i></i></span
+                ><span class="os-term-title">terminal</span
+                ><button class="os-copy" type="button" data-copy="code-pull">
+                  <svg aria-hidden="true"><use href="#i-copy" /></svg><span>Copy</span>
+                </button>
+              </div>
+              <pre><code id="code-pull"><span class="os-c-mut">$ </span>cp .env.example .env &amp;&amp; docker compose up -d</code></pre>
+            </div>
+            <div class="os-family">
+              <p>Part of the OpenStuff family: tools built on one shared toolkit.</p>
+              <div class="os-family-row">
+                <a href="https://github.com/openstuff-dev"
+                  ><svg class="os-mark" aria-hidden="true">
+                    <use href="assets/logo.svg#mark-openstuff" /></svg
+                  >OpenStuff</a
+                >
+                <span
+                  ><svg class="os-mark" aria-hidden="true">
+                    <use href="assets/logo.svg#mark-open-relay" /></svg
+                  >OpenRelay</span
+                >
+                <a href="https://design.openstuff.dev" style="--os-mark-core: #9442d9"
+                  ><svg class="os-mark" aria-hidden="true">
+                    <use href="assets/logo.svg#mark-openstuff-design" /></svg
+                  >OpenStuff Design</a
+                >
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 8. For networks -->
+      <section class="os-section" data-divider aria-labelledby="teams-title">
+        <div class="os-wrap">
+          <div class="os-section-head">
+            <span class="os-eyebrow">For delivery networks</span>
+            <h2 id="teams-title">Run one network, or many, on one server.</h2>
+            <p class="os-lede">
+              A local delivery co-op, a group of shops or a city service: each network has its own
+              shops, points and people, walled off from the others.
+            </p>
+          </div>
+          <div class="os-features">
+            <div>
+              <svg aria-hidden="true"><use href="#i-users" /></svg>
+              <h3>A role for everyone</h3>
+              <p>
+                Admins, shop staff, couriers and point staff each see only what their job needs.
+              </p>
+            </div>
+            <div>
+              <svg aria-hidden="true"><use href="#i-qr" /></svg>
+              <h3>Any phone is a scanner</h3>
+              <p>Scan with the camera in the browser, a handheld scanner, or type the code.</p>
+            </div>
+            <div>
+              <svg aria-hidden="true"><use href="#i-mail" /></svg>
+              <h3>Emails from your address</h3>
+              <p>Customers hear from your network, through your own mail server.</p>
+            </div>
+            <div>
+              <svg aria-hidden="true"><use href="#i-lock" /></svg>
+              <h3>Privacy by default</h3>
+              <p>Staff never see pickup codes, and customer details are deleted on schedule.</p>
+            </div>
+            <div>
+              <svg aria-hidden="true"><use href="#i-layers" /></svg>
+              <h3>Networks kept apart</h3>
+              <p>
+                Postgres shows each request one network’s rows, even if a query forgets a filter.
+              </p>
+            </div>
+            <div>
+              <svg aria-hidden="true"><use href="#i-swap" /></svg>
+              <h3>Export and import</h3>
+              <p>Move a whole network to another server as one file.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 9. FAQ -->
+      <section class="os-section" data-divider aria-labelledby="faq-title">
+        <div class="os-wrap">
+          <div class="os-section-head" data-align="center">
+            <span class="os-eyebrow">FAQ</span>
+            <h2 id="faq-title">Questions people ask first</h2>
+          </div>
+          <div class="os-faq">
+            <details name="faq">
+              <summary>Is it free?</summary>
+              <div class="os-faq-answer">
+                <p>
+                  Yes. OpenRelay is open source under the MIT licence, so running it costs nothing
+                  but your server.
+                </p>
+              </div>
+            </details>
+            <details name="faq">
+              <summary>Do customers need an app or an account?</summary>
+              <div class="os-faq-answer">
+                <p>
+                  No. They get emails and a tracking link, and show their pickup code at the
+                  counter, on their phone or on paper.
+                </p>
+              </div>
+            </details>
+            <details name="faq">
+              <summary>What do shops and pick-up points need?</summary>
+              <div class="os-faq-answer">
+                <p>
+                  A phone with a browser, and a label printer for shops. Handheld barcode scanners
+                  work too, if you already have them.
+                </p>
+              </div>
+            </details>
+            <details name="faq">
+              <summary>Does it work with my web shop?</summary>
+              <div class="os-faq-answer">
+                <p>
+                  Shops can add parcels by hand, upload a CSV file of orders, or send them through a
+                  small API. Ready-made plugins for Shopify, WooCommerce and Wix are planned.
+                </p>
+              </div>
+            </details>
+            <details name="faq">
+              <summary>Where is the data kept?</summary>
+              <div class="os-faq-answer">
+                <p>
+                  In your own Postgres database, on your own server. Admins can export a network as
+                  one file at any time and import it on another server.
+                </p>
+              </div>
+            </details>
+          </div>
+        </div>
+      </section>
+
+      <!-- 10. Final call to action -->
+      <section class="os-section os-final" data-divider aria-labelledby="final-title">
+        <div class="os-wrap">
+          <h2 id="final-title">Every hand-off scanned. Every customer informed.</h2>
+          <p class="os-lede">Set up your own delivery network in an afternoon.</p>
+          <div class="os-cta-row">
+            <a
+              class="os-button"
+              data-size="lg"
+              data-variant="primary"
+              href="https://github.com/openstuff-dev/open-relay"
+              >Self-host it <svg class="os-icon" aria-hidden="true"><use href="#i-arrow" /></svg
+            ></a>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="os-footer">
+      <div class="os-wrap">
+        <div>
+          <a
+            class="os-brand"
+            href="https://github.com/openstuff-dev"
+            aria-label="OpenStuff on GitHub"
+          >
+            <svg class="os-mark" aria-hidden="true">
+              <use href="assets/logo.svg#mark-openstuff" />
+            </svg>
+            <span class="os-wordmark" aria-hidden="true">Open<b>Stuff</b></span>
+          </a>
+          <small>Made by OpenStuff. OpenRelay is released under the MIT licence.</small>
+        </div>
+        <nav aria-label="Footer">
+          <a href="https://github.com/openstuff-dev/open-relay">GitHub</a>
+          <a href="https://design.openstuff.dev">Design</a>
+          <a href="https://github.com/openstuff-dev/open-relay/blob/HEAD/LICENSE">Licence</a>
+        </nav>
+      </div>
+    </footer>
+  </body>
+</html>

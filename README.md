@@ -3,6 +3,8 @@
 Parcels from online shops to a pick-up point near the customer, with every hand-off scanned and
 the customer kept informed.
 
+Project page: https://relay.openstuff.dev
+
 A delivery network runs OpenRelay with its shops, couriers and pick-up points. Each parcel gets
 one label with one QR code. Whoever handles the parcel next scans it, and OpenRelay works out the
 step from who they are:
@@ -142,6 +144,7 @@ Without `TEST_DATABASE_URL` those tests are skipped.
 |---|---|
 | `apps/web` | The app (Angular, on the OpenStuff toolkit): admin pages, the scan page, pickups and the customer’s tracking page |
 | `apps/server` | The Fastify API, the merchant API, labels, the email worker, the migrations and the demo seed. In production it also serves the app |
+| `site` | The project page at relay.openstuff.dev: plain HTML on the OpenStuff toolkit, published by `.github/workflows/pages.yml` |
 | `packages/contracts` | `@open-relay/contracts`: the API’s types and the parcel journey (`nextStatus`), shared by both |
 
 ## License
