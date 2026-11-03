@@ -1,0 +1,8 @@
+**/node_modules
+**/dist
+**/out-tsc
+**/.angular
+**/src/tokens
+.nx
+.git
+.env

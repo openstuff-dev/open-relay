@@ -1,0 +1,28 @@
+{
+  "name": "@open-relay/source",
+  "version": "0.0.0",
+  "license": "MIT",
+  "scripts": {
+    "build": "nx run-many -t build",
+    "typecheck": "nx run-many -t typecheck",
+    "test": "nx run-many -t test",
+    "lint": "nx run-many -t lint stylelint"
+  },
+  "private": true,
+  "devDependencies": {
+    "@nx/eslint": "24.0.0",
+    "@nx/workspace": "24.0.0",
+    "@openstuff-dev/lint": "^0.1.0",
+    "@openstuff-dev/nx": "^0.2.2",
+    "eslint": "^10.13.0",
+    "nx": "24.0.0",
+    "prettier": "^3.8.1",
+    "stylelint": "^17.16.0",
+    "typescript": "~6.0.3"
+  },
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "prettier": "@openstuff-dev/lint/prettier"
+}

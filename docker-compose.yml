@@ -1,0 +1,8 @@
+services:
+  app:
+    build: .
+    environment:
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+    ports:
+      - '${PORT:-8080}:8080'
+    restart: unless-stopped

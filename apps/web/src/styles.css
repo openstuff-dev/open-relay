@@ -1,0 +1,19 @@
+/*
+ * Components and base styles come from @openstuff-dev/ui, colours from the generated tokens
+ * (change primaryColor in tokens.config.json). Keep this file to page layout.
+ */
+@import '@openstuff-dev/ui/ui.css';
+@import './tokens/tokens.css' layer(os.tokens);
+
+body {
+  margin: 0;
+  background: var(--os-bg-default);
+  color: var(--os-fg-default);
+}
+
+/* Children one under the other, evenly spaced. */
+.stack {
+  display: grid;
+  gap: var(--os-space-4);
+  align-content: start;
+}
