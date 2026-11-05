@@ -1,4 +1,9 @@
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
+import { buildApp } from '../src/app.js';
+import type { Pool } from '../src/db.js';
 import { loadConfig } from '../src/config.js';
 import { parseCsv } from '../src/csv.js';
 import { renderEmail } from '../src/emails.js';
@@ -73,5 +78,25 @@ describe('distance', () => {
     const km = distanceKm({ lat: 55.6893, lng: 12.5528 }, { lat: 55.6717, lng: 12.5627 });
     expect(km).toBeGreaterThan(1.9);
     expect(km).toBeLessThan(2.2);
+  });
+});
+
+describe('a file that is missing', () => {
+  it('answers 404, not the web app, and unknown pages still get the web app', async () => {
+    const webDir = mkdtempSync(join(tmpdir(), 'web-'));
+    writeFileSync(join(webDir, 'index.html'), '<!doctype html><title>app</title>');
+    const pool = { query: () => Promise.resolve({ rows: [] }) } as unknown as Pool;
+    const app = await buildApp({ ...loadConfig({}), webDir, logLevel: 'silent' }, pool);
+    try {
+      const chunk = await app.inject({ url: '/chunk-missing.js?v=1' });
+      expect(chunk.statusCode).toBe(404);
+      expect(chunk.headers['content-type']).toContain('application/json');
+      const page = await app.inject({ url: '/settings' });
+      expect(page.statusCode).toBe(200);
+      expect(page.headers['content-type']).toContain('text/html');
+    } finally {
+      await app.close();
+      rmSync(webDir, { recursive: true, force: true });
+    }
   });
 });
