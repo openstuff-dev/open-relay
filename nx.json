@@ -32,6 +32,9 @@
     },
     "lint": {
       "cache": true,
+      "dependsOn": [
+        "^build"
+      ],
       "inputs": [
         "default",
         "{workspaceRoot}/eslint.config.mjs",
@@ -41,9 +44,6 @@
             "@openstuff-dev/lint"
           ]
         }
-      ],
-      "dependsOn": [
-        "^build"
       ]
     },
     "stylelint": {
