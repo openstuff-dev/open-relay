@@ -1,4 +1,7 @@
-import { describe, expect, it } from 'vitest';
+import type { FastifyBaseLogger } from 'fastify';
+import { describe, expect, it, vi } from 'vitest';
+import { ensureFirstAdmin } from '../src/bootstrap.js';
+import type { Pool } from '../src/db.js';
 import { loadConfig } from '../src/config.js';
 import { parseCsv } from '../src/csv.js';
 import { renderEmail } from '../src/emails.js';
@@ -73,5 +76,18 @@ describe('distance', () => {
     const km = distanceKm({ lat: 55.6893, lng: 12.5528 }, { lat: 55.6717, lng: 12.5627 });
     expect(km).toBeGreaterThan(1.9);
     expect(km).toBeLessThan(2.2);
+  });
+});
+
+describe('first admin', () => {
+  it('says where to change the password that it logs once', async () => {
+    const warn = vi.fn();
+    const pool = {
+      query: vi.fn(() => Promise.resolve({ rows: [{ any: false }] })),
+    } as unknown as Pool;
+    const log = { warn, info: vi.fn() } as unknown as FastifyBaseLogger;
+    await ensureFirstAdmin(pool, loadConfig({}), log);
+    expect(warn.mock.calls[0]?.[0]).toContain('change it under Settings');
+    expect(warn.mock.calls[0]?.[0]).not.toContain('top bar');
   });
 });

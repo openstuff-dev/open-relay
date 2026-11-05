@@ -24,7 +24,7 @@ export async function ensureFirstAdmin(
   else {
     log.warn(
       `Created the first admin. Sign in as ${config.adminEmail} with the password ${password} ` +
-      'and change it under your name in the top bar. This is shown once.',
+      'and change it under Settings. This is shown once.',
     );
   }
 }
