@@ -13,7 +13,7 @@
     "@nx/eslint": "24.0.0",
     "@nx/workspace": "24.0.0",
     "@openstuff-dev/lint": "^0.1.0",
-    "@openstuff-dev/nx": "^0.3.0",
+    "@openstuff-dev/nx": "^0.3.2",
     "eslint": "^10.13.0",
     "nx": "24.0.0",
     "prettier": "^3.8.1",
