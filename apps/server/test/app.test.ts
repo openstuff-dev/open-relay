@@ -1,8 +1,10 @@
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { describe, expect, it } from 'vitest';
+import type { FastifyBaseLogger } from 'fastify';
+import { describe, expect, it, vi } from 'vitest';
 import { buildApp } from '../src/app.js';
+import { ensureFirstAdmin } from '../src/bootstrap.js';
 import type { Pool } from '../src/db.js';
 import { loadConfig } from '../src/config.js';
 import { parseCsv } from '../src/csv.js';
@@ -98,5 +100,18 @@ describe('a file that is missing', () => {
       await app.close();
       rmSync(webDir, { recursive: true, force: true });
     }
+  });
+});
+
+describe('first admin', () => {
+  it('says where to change the password that it logs once', async () => {
+    const warn = vi.fn();
+    const pool = {
+      query: vi.fn(() => Promise.resolve({ rows: [{ any: false }] })),
+    } as unknown as Pool;
+    const log = { warn, info: vi.fn() } as unknown as FastifyBaseLogger;
+    await ensureFirstAdmin(pool, loadConfig({}), log);
+    expect(warn.mock.calls[0]?.[0]).toContain('change it under Settings');
+    expect(warn.mock.calls[0]?.[0]).not.toContain('top bar');
   });
 });
