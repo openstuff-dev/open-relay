@@ -1,0 +1,61 @@
+name: Use cases
+
+# Tells OpenUsecase which scenarios pass on the default branch, which is what lets a use case go live.
+# Runs every test, not the affected ones: a report replaces that suite's earlier results.
+# Stays off until the repository has the variable OPENUSECASE_URL and the secret OPENUSECASE_TOKEN.
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: usecases-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  report:
+    if: ${{ vars.OPENUSECASE_URL != '' }}
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: openrelay
+          POSTGRES_PASSWORD: openrelay
+          POSTGRES_DB: openrelay_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U openrelay"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      TEST_DATABASE_URL: postgres://openrelay:openrelay@localhost:5432/openrelay_test
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: 'npm'
+
+      - run: npm ci
+
+      # A failing test is evidence too, so the report still goes out.
+      - run: npx nx run-many -t test --skip-nx-cache -- --reporter=default --reporter=junit --outputFile.junit=test-results.xml
+        continue-on-error: true
+
+      - name: Report the results
+        env:
+          OPENUSECASE_URL: ${{ vars.OPENUSECASE_URL }}
+          OPENUSECASE_TOKEN: ${{ secrets.OPENUSECASE_TOKEN }}
+        run: |
+          shopt -s nullglob
+          for file in apps/*/test-results.xml packages/*/test-results.xml; do
+            npx --yes @openstuff-dev/usecase report --suite "$(basename "$(dirname "$file")")" "$file"
+          done
