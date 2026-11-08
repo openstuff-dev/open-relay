@@ -1,3 +1,5 @@
+import type { FetchPolicy } from '@openstuff-dev/server';
+
 /** Settings from environment variables. Each has a default, so the server starts without any. */
 export interface Config {
   port: number;
@@ -23,6 +25,19 @@ export interface Config {
   geocoderUrl: string | undefined;
   /** Behind a reverse proxy: true, or the proxy's addresses. */
   trustProxy: boolean | string;
+  /** Encrypts saved connection secrets. Without one, a key is made and kept in the database. */
+  secretKey: string | undefined;
+  /** OpenVersion and OpenAnnounce this server connects to. Set here, they win over the tab. */
+  openVersion: { url: string | undefined; publicKey: string | undefined };
+  openAnnounce: {
+    url: string | undefined;
+    publicKey: string | undefined;
+    signingSecret: string | undefined;
+  };
+  /** `private` lets this server call internal addresses, such as an OpenVersion on your network. */
+  fetch: 'public' | 'private';
+  /** With `private`: only these hosts. Empty means any. */
+  fetchAllow: string[];
 }
 
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
@@ -43,5 +58,27 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     retentionDays: Number(env.OPENRELAY_RETENTION_DAYS ?? 90),
     geocoderUrl: env.OPENRELAY_GEOCODER_URL?.replace(/\/$/, '') || undefined,
     trustProxy: trust === 'true' ? true : trust || false,
+    secretKey: env.OPENRELAY_SECRET_KEY || undefined,
+    openVersion: {
+      url: env.OPENRELAY_OPENVERSION_URL?.replace(/\/$/, '') || undefined,
+      publicKey: env.OPENRELAY_OPENVERSION_PUBLIC_KEY || undefined,
+    },
+    openAnnounce: {
+      url: env.OPENRELAY_OPENANNOUNCE_URL?.replace(/\/$/, '') || undefined,
+      publicKey: env.OPENRELAY_OPENANNOUNCE_PUBLIC_KEY || undefined,
+      signingSecret: env.OPENRELAY_OPENANNOUNCE_SIGNING_SECRET || undefined,
+    },
+    fetch: env.OPENRELAY_FETCH === 'private' ? 'private' : 'public',
+    fetchAllow: (env.OPENRELAY_FETCH_ALLOW ?? '')
+      .split(',')
+      .map((host) => host.trim().toLowerCase())
+      .filter(Boolean),
   };
 }
+
+/** The fetch policy integrations use, from OPENRELAY_FETCH and OPENRELAY_FETCH_ALLOW. */
+export const policyFrom = (config: Config): FetchPolicy => ({
+  mode: config.fetch,
+  allow: config.fetchAllow,
+  envPrefix: 'OPENRELAY',
+});
