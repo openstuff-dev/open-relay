@@ -48,7 +48,7 @@ describe('server connections', () => {
     expect(announce.environment?.signingSecret).toBe('signing-secret-value');
   });
 
-  it('answers 409 when the server configuration sets the connection, and never returns secrets', async () => {
+  it('UC-5/S5 answers 409 when the server configuration sets the connection', async () => {
     const rows: Record<string, unknown>[] = [];
     const db: Queryable = {
       query: (text: string) =>
@@ -91,7 +91,7 @@ describe('server connections', () => {
     await app.close();
   });
 
-  it('refuses everyone but a server admin', async () => {
+  it('UC-5/S6 refuses everyone but a server admin', async () => {
     const config = loadConfig({});
     const app = Fastify();
     registerIntegrationRoutes(app, {
