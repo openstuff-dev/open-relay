@@ -105,6 +105,14 @@ columns: `name` and `email` are required; `phone`, `street`, `postcode`, `city`,
 | `OPENRELAY_RETENTION_DAYS` | `90` | How long after a parcel is collected or cancelled the customer’s details are kept. |
 | `OPENRELAY_GEOCODER_URL` | _(off)_ | A Nominatim-compatible geocoder, to sort points by distance. Without it, points are matched by postcode. |
 | `OPENRELAY_TRUST_PROXY` | _(off)_ | Behind a reverse proxy: `true`, or the proxy’s addresses, so rate limits see real client addresses. |
+| `OPENRELAY_SECRET_KEY` | _(made and kept in the database, with a warning)_ | Encrypts the saved connection secrets (OpenAnnounce's signing secret). Set it on a real server, so a database dump alone can’t reveal them. Changing it makes saved secrets unreadable: enter them again. |
+| `OPENRELAY_OPENVERSION_URL` | _(off)_ | The OpenVersion this server checks releases against, e.g. `https://versions.example.com`. Setting it (with the public key) wins over the Integrations tab, which then shows the connection read-only. |
+| `OPENRELAY_OPENVERSION_PUBLIC_KEY` | _(off)_ | That OpenVersion app’s public key (`pk_…`). Safe in browser code. |
+| `OPENRELAY_OPENANNOUNCE_URL` | _(off)_ | The OpenAnnounce that shows messages in this app, e.g. `https://news.example.com`. Wins over the Integrations tab, as above. |
+| `OPENRELAY_OPENANNOUNCE_PUBLIC_KEY` | _(off)_ | That OpenAnnounce system’s public key. |
+| `OPENRELAY_OPENANNOUNCE_SIGNING_SECRET` | _(off)_ | Signs each person’s token, so messages can be aimed at a tenant or role. For this server only, never in browser code. |
+| `OPENRELAY_FETCH` | `public` | `private` lets this server call internal addresses, such as an OpenVersion on your network. Public refuses them. |
+| `OPENRELAY_FETCH_ALLOW` | _(any)_ | With `private`: a comma-separated list of hosts allowed to be internal, e.g. `versions.internal,news.internal`. |
 
 **Security and privacy.** The database user may be a superuser (the Docker default): every
 connection drops to the `openrelay_app` role, which row-level security applies to. If it can’t,

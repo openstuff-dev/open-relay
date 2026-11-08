@@ -1,11 +1,13 @@
 import fastifyCookie from '@fastify/cookie';
 import fastifyStatic from '@fastify/static';
+import { loadVault, registerIntegrationRoutes, type Vault } from '@openstuff-dev/server';
 import Fastify, { type FastifyInstance } from 'fastify';
-import { registerAuth } from './auth.js';
-import type { Config } from './config.js';
+import { registerAuth, requireAccount } from './auth.js';
+import { type Config, policyFrom } from './config.js';
 import type { Pool } from './db.js';
 import { registerErrorHandler } from './errors.js';
 import { registerIdempotency } from './idempotency.js';
+import { integrationOffers } from './integrations.js';
 import { registerApiRoutes } from './routes/api.js';
 import { registerNetworkRoutes } from './routes/networks.js';
 import { registerParcelRoutes } from './routes/parcels.js';
@@ -29,6 +31,30 @@ export async function buildApp(config: Config, pool: Pool): Promise<FastifyInsta
   registerParcelRoutes(app, pool, config);
   registerApiRoutes(app, pool, config);
   registerTransferRoutes(app, pool);
+
+  // The key is opened on first use, so a server that never saves a connection doesn't need one.
+  let vault: Promise<Vault> | undefined;
+  const openVault = () => {
+    vault ??= loadVault(pool, {
+      secret: config.secretKey,
+      envName: 'OPENRELAY_SECRET_KEY',
+      settingName: 'secret_key',
+      log: app.log,
+    }).catch((err: unknown) => {
+      vault = undefined;
+      throw err;
+    });
+    return vault;
+  };
+  registerIntegrationRoutes(app, {
+    db: pool,
+    vault: openVault,
+    policy: policyFrom(config),
+    origin: new URL(config.publicUrl).origin,
+    appName: 'OpenRelay',
+    offers: integrationOffers(config),
+    isServerAdmin: (request) => requireAccount(request).isServerAdmin,
+  });
 
   if (config.webDir) {
     await app.register(fastifyStatic, { root: config.webDir, wildcard: false });
