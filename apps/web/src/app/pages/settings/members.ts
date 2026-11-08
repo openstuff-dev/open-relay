@@ -1,4 +1,15 @@
-import { ChangeDetectionStrategy, Component, DestroyRef, effect, inject, input, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  DestroyRef,
+  type ElementRef,
+  computed,
+  effect,
+  inject,
+  input,
+  signal,
+  viewChild,
+} from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import type { Member, MembersPage, NewMember, Role } from '@open-relay/contracts';
 import {
@@ -8,17 +19,20 @@ import {
   ConfirmDialog,
   Control,
   DataTable,
+  EmptyState,
   Field,
-  PageHeader,
+  SecretDialog,
+  SectionHeader,
+  SettingCard,
+  SettingCardFooter,
   Skeleton,
   Toaster,
 } from '@openstuff-dev/ui-angular';
-import { Api, errorText } from '../core/api';
-import { IdempotencyKey } from '../core/idempotency';
-import { onReturn, slowLoading } from '../core/loading';
-import { Session } from '../core/session';
-import { CopyButton } from '../shared/copy-button';
-import { ROLE_LABELS } from '../shared/labels';
+import { Api, errorText } from '../../core/api';
+import { IdempotencyKey } from '../../core/idempotency';
+import { onReturn, slowLoading } from '../../core/loading';
+import { Session } from '../../core/session';
+import { ROLE_LABELS } from '../../shared/labels';
 
 const ROLES: Role[] = ['merchant', 'courier', 'point', 'admin'];
 
@@ -31,17 +45,19 @@ const ROLES: Role[] = ['merchant', 'courier', 'point', 'admin'];
     Callout,
     Cell,
     Control,
-    CopyButton,
     DataTable,
+    EmptyState,
     Field,
-    PageHeader,
+    SectionHeader,
+    SettingCard,
+    SettingCardFooter,
     Skeleton,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: { class: 'stack' },
   template: `
     <header
-      os-page-header
+      os-section-header
       title="Members"
       description="Shop staff add parcels for their shop. Couriers pick them up. Point staff receive them and hand them over. Admins manage everything."
     ></header>
@@ -50,51 +66,57 @@ const ROLES: Role[] = ['merchant', 'courier', 'point', 'admin'];
       <os-callout tone="danger" title="The members didn’t load">{{ error }}</os-callout>
     }
 
-    <form class="inline" (ngSubmit)="add()">
-      <os-field label="Email" [error]="addError()">
-        <input os-input type="email" name="email" required [(ngModel)]="email" />
-      </os-field>
-      <os-field label="Name (optional)">
-        <input os-input name="name" [(ngModel)]="name" />
-      </os-field>
-      <os-field label="Role">
-        <select os-select name="role" [(ngModel)]="role">
-          @for (r of roles; track r) {
-            <option [value]="r">{{ roleLabels[r] }}</option>
-          }
-        </select>
-      </os-field>
-      @if (role === 'merchant') {
-        <os-field label="Shop">
-          <select os-select name="merchantId" required [(ngModel)]="merchantId">
-            @for (m of merchants(); track m.id) {
-              <option [value]="m.id">{{ m.name }}</option>
+    <form
+      os-setting-card
+      title="Add a member"
+      description="They get a password, shown once, for you to pass on."
+      (ngSubmit)="add()"
+    >
+      <div class="fields">
+        <os-field label="Email" [error]="addError()">
+          <input #emailInput os-input type="email" name="email" required [(ngModel)]="email" />
+        </os-field>
+        <os-field label="Name (optional)">
+          <input os-input name="name" [(ngModel)]="name" />
+        </os-field>
+        <os-field label="Role">
+          <select os-select name="role" [(ngModel)]="role">
+            @for (r of roles; track r) {
+              <option [value]="r">{{ roleLabels[r] }}</option>
             }
           </select>
         </os-field>
-      }
-      @if (role === 'point') {
-        <os-field label="Pick-up point">
-          <select os-select name="pointId" required [(ngModel)]="pointId">
-            @for (p of points(); track p.id) {
-              <option [value]="p.id">{{ p.name }}</option>
-            }
-          </select>
-        </os-field>
-      }
-      <button os-button type="submit" [loading]="adding()">Add member</button>
+        @if (role === 'merchant') {
+          <os-field label="Shop">
+            <select os-select name="merchantId" required [(ngModel)]="merchantId">
+              @for (m of merchants(); track m.id) {
+                <option [value]="m.id">{{ m.name }}</option>
+              }
+            </select>
+          </os-field>
+        }
+        @if (role === 'point') {
+          <os-field label="Pick-up point">
+            <select os-select name="pointId" required [(ngModel)]="pointId">
+              @for (p of points(); track p.id) {
+                <option [value]="p.id">{{ p.name }}</option>
+              }
+            </select>
+          </os-field>
+        }
+      </div>
+      <div os-setting-card-footer>
+        <button os-button variant="primary" type="submit" [loading]="adding()">Add member</button>
+      </div>
     </form>
 
-    @if (newPassword(); as added) {
-      <os-callout tone="info" title="Send {{ added.email }} their password">
-        <p>
-          This is the only time it’s shown: <code>{{ added.password }}</code>
-          <app-copy-button [text]="added.password ?? ''" what="password" />
-        </p>
-      </os-callout>
-    }
-
     @if (members(); as members) {
+      @if (onlyYou()) {
+        <os-empty-state title="Only you so far">
+          <p>Add your first courier or shop. They get a password to sign in with.</p>
+          <div><button os-button type="button" (click)="focusEmail()">Add member</button></div>
+        </os-empty-state>
+      }
       <os-data-table
         caption="Members"
         [columns]="columns"
@@ -130,13 +152,23 @@ const ROLES: Role[] = ['merchant', 'courier', 'point', 'admin'];
       <os-skeleton [lines]="5" />
     }
   `,
+  styles: `
+    .fields {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--os-space-3);
+      align-items: end;
+    }
+  `,
 })
 export class Members {
   readonly network = input.required<string>();
   private readonly api = inject(Api);
   private readonly toaster = inject(Toaster);
   private readonly confirm = inject(ConfirmDialog);
+  private readonly secret = inject(SecretDialog);
   private readonly session = inject(Session);
+  private readonly emailInput = viewChild<ElementRef<HTMLInputElement>>('emailInput');
   protected readonly me = () => this.session.me()?.id;
   protected readonly members = signal<Member[] | null>(null);
   protected readonly merchants = signal<MembersPage['merchants']>([]);
@@ -153,6 +185,12 @@ export class Members {
     { key: 'actions' as const, label: 'Actions', align: 'end' as const },
   ];
 
+  /** True when you're the only member, so the empty state invites the first one. */
+  protected readonly onlyYou = computed(() => {
+    const list = this.members();
+    return list?.every((m) => m.accountId === this.me()) ?? false;
+  });
+
   protected rows = (members: Member[]) => members.map((m) => ({ ...m, at: '', actions: '' }));
   protected email = '';
   protected name = '';
@@ -161,7 +199,6 @@ export class Members {
   protected pointId = '';
   protected readonly adding = signal(false);
   protected readonly addError = signal<string | null>(null);
-  protected readonly newPassword = signal<NewMember | null>(null);
   private readonly key = new IdempotencyKey();
 
   constructor() {
@@ -175,6 +212,10 @@ export class Members {
     return `/api/n/${encodeURIComponent(this.network())}`;
   }
 
+  protected focusEmail(): void {
+    this.emailInput()?.nativeElement.focus();
+  }
+
   protected placeOf(m: Member): string {
     if (m.merchantId) return this.merchants().find((x) => x.id === m.merchantId)?.name ?? '';
     if (m.pointId) return this.points().find((x) => x.id === m.pointId)?.name ?? '';
@@ -184,7 +225,6 @@ export class Members {
   protected async add(): Promise<void> {
     this.adding.set(true);
     this.addError.set(null);
-    this.newPassword.set(null);
     try {
       const body = {
         email: this.email,
@@ -198,8 +238,16 @@ export class Members {
       this.email = '';
       this.name = '';
       this.members.update((m) => (m ? [...m, added] : m));
-      if (added.password) this.newPassword.set(added);
-      else this.toaster.show(`Added ${added.email}. They sign in with the password they have.`, { tone: 'success' });
+      if (added.password) {
+        await this.secret.show({
+          title: `Password for ${added.email}`,
+          secret: added.password,
+          what: 'password',
+          instructions: 'Give it to them. They can change it under Settings › Account.',
+        });
+      } else {
+        this.toaster.show(`Added ${added.email}. They sign in with the password they have.`, { tone: 'success' });
+      }
     } catch (error) {
       this.addError.set(errorText(error));
     } finally {

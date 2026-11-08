@@ -16,8 +16,10 @@ export {
   Settings as iconSettings,
   Store as iconMerchants,
   Truck as iconPickups,
+  SunMoon as iconAppearance,
   Undo2 as iconUndo,
   Upload as iconUpload,
+  UserRound as iconAccount,
   UserCog as iconMembers,
   X as iconX,
 } from 'lucide';

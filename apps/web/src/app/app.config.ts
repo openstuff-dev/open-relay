@@ -5,11 +5,14 @@ import {
   withRouterConfig,
   withViewTransitions,
 } from '@angular/router';
+import { provideTheme } from '@openstuff-dev/ui-angular';
 import { routes } from './app.routes';
 
 export const appConfig: ApplicationConfig = {
   providers: [
     provideBrowserGlobalErrorListeners(),
+    // The light, dark or system choice, kept in this browser.
+    provideTheme({ storageKey: 'open-relay-theme' }),
     provideRouter(
       routes,
       withComponentInputBinding(),

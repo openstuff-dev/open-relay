@@ -1,6 +1,14 @@
 import { ChangeDetectionStrategy, Component, inject, input, signal } from '@angular/core';
-import { Button, Callout, PageHeader } from '@openstuff-dev/ui-angular';
-import { Api, errorText } from '../core/api';
+import {
+  Button,
+  Callout,
+  FileInput,
+  Field,
+  SectionHeader,
+  SettingCard,
+  SettingCardFooter,
+} from '@openstuff-dev/ui-angular';
+import { Api, errorText } from '../../core/api';
 
 interface ImportResult {
   merchants: number;
@@ -12,41 +20,40 @@ interface ImportResult {
 /** Everything in this network as one JSON file, and back again. */
 @Component({
   selector: 'app-data',
-  imports: [Button, Callout, PageHeader],
+  imports: [Button, Callout, Field, FileInput, SectionHeader, SettingCard, SettingCardFooter],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: { class: 'stack' },
   template: `
     <header
-      os-page-header
+      os-section-header
       title="Export and import"
-      description="Your data is yours: take it to another OpenRelay server, or keep a copy."
+      description="Your data is yours. Keep a copy, or move it to another OpenRelay server. API keys and pickup codes aren’t in the file."
     ></header>
 
-    <section class="stack">
-      <h2>Export</h2>
-      <p>
-        One JSON file with this network’s shops, pick-up points and parcels, with each parcel’s
-        history. API keys and pickup codes aren’t in it.
-      </p>
-      <div><a os-button variant="primary" [href]="exportUrl()" download>Download export</a></div>
+    <section
+      os-setting-card
+      title="Export"
+      description="This network’s shops, pick-up points and parcels, with each parcel’s history."
+    >
+      <div os-setting-card-footer>
+        <a os-button variant="primary" [href]="exportUrl()" download>Download export</a>
+      </div>
     </section>
 
-    <section class="stack">
-      <h2>Import</h2>
-      <p>
-        Adds what’s in an export file to this network. Shops and points with the same slug are
-        updated. Parcels already on this server are skipped; the others get new tracking links and
-        pickup codes, and no emails go out.
-      </p>
-      <label class="file">
-        <span class="os-visually-hidden">Export file</span>
+    <section
+      os-setting-card
+      title="Import"
+      description="Adds what’s in an export file to this network. Shops and points with the same slug are updated. Parcels already on this server are skipped; the others get new tracking links and pickup codes, and no emails go out."
+    >
+      <os-field label="Export file">
         <input
           type="file"
+          os-file-input
           accept="application/json,.json"
           (change)="pick($event)"
           [disabled]="busy()"
         />
-      </label>
+      </os-field>
       @if (result(); as r) {
         <os-callout tone="success" title="Imported">
           {{ r.merchants }} shops, {{ r.points }} pick-up points and {{ r.parcels }} parcels.
@@ -59,18 +66,6 @@ interface ImportResult {
         <os-callout tone="danger" title="Nothing was imported">{{ error }}</os-callout>
       }
     </section>
-  `,
-  styles: `
-    h2 {
-      margin: 0;
-      font-size: var(--os-text-lg);
-    }
-
-    p {
-      max-inline-size: 60ch;
-      margin: 0;
-      text-wrap: pretty;
-    }
   `,
 })
 export class Data {
@@ -98,7 +93,9 @@ export class Data {
       } catch {
         throw new Error('That file isn’t JSON. Choose a file you exported from OpenRelay.');
       }
-      this.result.set(await this.api.post<ImportResult>(`/api/n/${encodeURIComponent(this.network())}/import`, data));
+      this.result.set(
+        await this.api.post<ImportResult>(`/api/n/${encodeURIComponent(this.network())}/import`, data),
+      );
     } catch (error) {
       this.error.set(errorText(error));
     } finally {

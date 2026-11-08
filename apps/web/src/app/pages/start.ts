@@ -14,7 +14,7 @@ import { HOME, Session } from '../core/session';
         <os-empty-state title="Make your first network" [level]="1">
           A network has its own shops, pick-up points, couriers and parcels.
           <div os-actions>
-            <a os-button variant="primary" routerLink="/networks">Make a network</a>
+            <a os-button variant="primary" routerLink="/settings/networks">Make a network</a>
           </div>
         </os-empty-state>
       } @else {

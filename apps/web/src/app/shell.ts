@@ -15,9 +15,6 @@ import { Session } from './core/session';
 import {
   iconCheck,
   iconChevrons,
-  iconData,
-  iconKeys,
-  iconMembers,
   iconMenu,
   iconMerchants,
   iconNetworks,
@@ -45,9 +42,6 @@ const LINKS: NavLink[] = [
   { path: 'pickups', label: 'Pickups', icon: iconPickups, roles: ['admin', 'courier'] },
   { path: 'points', label: 'Pick-up points', icon: iconPoints, roles: ['admin'] },
   { path: 'merchants', label: 'Shops', icon: iconMerchants, roles: ['admin'] },
-  { path: 'members', label: 'Members', icon: iconMembers, roles: ['admin'] },
-  { path: 'api-keys', label: 'API keys', icon: iconKeys, roles: ['admin'] },
-  { path: 'data', label: 'Export and import', icon: iconData, roles: ['admin'] },
 ];
 
 /** "Demo Network" → "DN", "Acme" → "AC". */
@@ -133,7 +127,7 @@ export function initials(name: string): string {
                 }
                 @if (me.isServerAdmin) {
                   <hr os-menu-separator />
-                  <a os-menu-item routerLink="/networks">
+                  <a os-menu-item routerLink="/settings/networks">
                     <svg os-icon [icon]="icons.networks" size="sm"></svg>Manage networks
                   </a>
                 }
@@ -161,7 +155,11 @@ export function initials(name: string): string {
         <div class="rail-foot">
           <ul>
             <li>
-              <a routerLink="/settings" routerLinkActive="active" ariaCurrentWhenActive="page">
+              <a
+                [routerLink]="settingsLink()"
+                routerLinkActive="active"
+                ariaCurrentWhenActive="page"
+              >
                 <svg os-icon [icon]="icons.settings" size="sm"></svg>Settings
               </a>
             </li>
@@ -435,6 +433,12 @@ export class Shell {
     settings: iconSettings,
     signOut: iconSignOut,
   };
+
+  /** Settings lives in the network in view, or at /settings outside one. */
+  protected readonly settingsLink = computed(() => {
+    const n = this.network();
+    return n ? ['/n', n, 'settings'] : ['/settings'];
+  });
 
   protected readonly links = computed(() => {
     const role = this.session.role();
