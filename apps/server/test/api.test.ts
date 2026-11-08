@@ -1,6 +1,7 @@
 import { fileURLToPath } from 'node:url';
 import type { FastifyInstance } from 'fastify';
 import pg from 'pg';
+import { vaultFor } from '@openstuff-dev/server';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import type {
   Me,
@@ -35,7 +36,13 @@ function must<T>(value: T | null | undefined, what = 'value'): T {
 describe.skipIf(!url)('API against Postgres', () => {
   let app: FastifyInstance;
   let pool: Pool;
-  const config = { ...loadConfig({}), databaseUrl: url, logLevel: 'silent' };
+  // A fixed key, so the test can seal a connection secret the way the server opens it.
+  const config = {
+    ...loadConfig({}),
+    databaseUrl: url,
+    logLevel: 'silent',
+    secretKey: 'test-key-for-openrelay-api-export',
+  };
   const as: Record<'root' | keyof typeof DEMO_MEMBERS, string> = {
     root: '',
     admin: '',
@@ -378,6 +385,30 @@ describe.skipIf(!url)('API against Postgres', () => {
     expect(imported.body.skipped).toBe(exported.body.parcels.length);
     const points = await call<Point[]>(as.root, 'GET', '/api/n/copy/points');
     expect(points.body).toHaveLength(3);
+  });
+
+  it('UC-5/S6 keeps a saved signing secret out of the admin list and an export', async () => {
+    const secret = 'sig_relay_saved_secret_51c8e0';
+    const sealed = vaultFor(config.secretKey).seal(secret);
+    await pool.query(
+      `INSERT INTO server_integrations (kind, url, public_key, signing_secret_encrypted)
+       VALUES ('openannounce', 'https://news.example.com', 'pk_news_saved_12345678', $1)
+       ON CONFLICT (kind) DO UPDATE SET signing_secret_encrypted = EXCLUDED.signing_secret_encrypted`,
+      [sealed],
+    );
+    try {
+      const list = await call(as.root, 'GET', '/api/admin/integrations');
+      expect(list.status).toBe(200);
+      expect(JSON.stringify(list.body)).toContain('pk_news_saved_12345678');
+      expect(JSON.stringify(list.body)).not.toContain(secret);
+
+      const exported = await call(as.admin, 'GET', `${n}/export`);
+      expect(exported.status).toBe(200);
+      expect(JSON.stringify(exported.body)).not.toContain(secret);
+      expect(JSON.stringify(exported.body)).not.toContain('signing_secret');
+    } finally {
+      await pool.query("DELETE FROM server_integrations WHERE kind = 'openannounce'");
+    }
   });
 
   it('makes a scan in a few round trips: session, access, then one transaction', async () => {
