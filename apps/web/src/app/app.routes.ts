@@ -11,9 +11,6 @@ const signedIn: CanActivateFn = async (_route, state) => {
   return me ? true : inject(Router).createUrlTree(['/sign-in'], { queryParams: { next: state.url } });
 };
 
-const serverAdmin: CanActivateFn = () =>
-  inject(Session).me()?.isServerAdmin ? true : inject(Router).createUrlTree(['/']);
-
 const page = (path: string, title: string, load: Routes[number]['loadComponent']) => ({
   path,
   loadComponent: load,
@@ -31,12 +28,13 @@ export const routes: Routes = [
     children: [
       { path: '', component: Start, title: 'OpenRelay' },
       // A label's QR code: the scan page of the network this person works in.
-      page('settings', 'Settings', () => import('./pages/settings').then((m) => m.Settings)),
       page('s/:code', 'Scan', () => import('./pages/scan').then((m) => m.Scan)),
-      {
-        ...page('networks', 'Networks', () => import('./pages/networks').then((m) => m.Networks)),
-        canActivate: [serverAdmin],
-      },
+      // Old address: Networks moved into Settings.
+      { path: 'networks', redirectTo: 'settings/networks', pathMatch: 'full' },
+      { path: 'settings', redirectTo: 'settings/account', pathMatch: 'full' },
+      page('settings/:tab', 'Settings', () =>
+        import('./pages/settings/settings').then((m) => m.SettingsPage),
+      ),
       {
         path: 'n/:network',
         children: [
@@ -48,9 +46,14 @@ export const routes: Routes = [
           page('pickups', 'Pickups', () => import('./pages/pickups').then((m) => m.Pickups)),
           page('points', 'Pick-up points', () => import('./pages/points').then((m) => m.Points)),
           page('merchants', 'Shops', () => import('./pages/merchants').then((m) => m.Merchants)),
-          page('members', 'Members', () => import('./pages/members').then((m) => m.Members)),
-          page('api-keys', 'API keys', () => import('./pages/api-keys').then((m) => m.ApiKeys)),
-          page('data', 'Export and import', () => import('./pages/data').then((m) => m.Data)),
+          // Old addresses: these moved into Settings.
+          { path: 'members', redirectTo: 'settings/members', pathMatch: 'full' },
+          { path: 'api-keys', redirectTo: 'settings/api-keys', pathMatch: 'full' },
+          { path: 'data', redirectTo: 'settings/data', pathMatch: 'full' },
+          { path: 'settings', redirectTo: 'settings/account', pathMatch: 'full' },
+          page('settings/:tab', 'Settings', () =>
+            import('./pages/settings/settings').then((m) => m.SettingsPage),
+          ),
         ],
       },
     ],

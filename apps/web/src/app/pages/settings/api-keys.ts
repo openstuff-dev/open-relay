@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, effect, inject, input, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { RouterLink } from '@angular/router';
 import type { ApiKey, Merchant, NewApiKey } from '@open-relay/contracts';
 import {
   Button,
@@ -8,37 +9,43 @@ import {
   ConfirmDialog,
   Control,
   DataTable,
+  EmptyState,
   Field,
-  PageHeader,
+  SecretDialog,
+  SectionHeader,
+  SettingCard,
+  SettingCardFooter,
   Skeleton,
   Toaster,
 } from '@openstuff-dev/ui-angular';
-import { Api, errorText } from '../core/api';
-import { IdempotencyKey } from '../core/idempotency';
-import { slowLoading } from '../core/loading';
-import { CopyButton } from '../shared/copy-button';
-import { shortDate } from '../shared/labels';
+import { Api, errorText } from '../../core/api';
+import { IdempotencyKey } from '../../core/idempotency';
+import { slowLoading } from '../../core/loading';
+import { shortDate } from '../../shared/labels';
 
 /** Keys a shop's own system uses to add parcels and find points, until shop plugins exist. */
 @Component({
   selector: 'app-api-keys',
   imports: [
     FormsModule,
+    RouterLink,
     Button,
     Callout,
     Cell,
     Control,
-    CopyButton,
     DataTable,
+    EmptyState,
     Field,
-    PageHeader,
+    SectionHeader,
+    SettingCard,
+    SettingCardFooter,
     Skeleton,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: { class: 'stack' },
   template: `
     <header
-      os-page-header
+      os-section-header
       title="API keys"
       description="A shop’s webshop or ERP adds parcels with a key. Each key belongs to one shop and only sees its parcels."
     ></header>
@@ -47,30 +54,42 @@ import { shortDate } from '../shared/labels';
       <os-callout tone="danger">{{ error }}</os-callout>
     }
 
-    <form class="inline" (ngSubmit)="create()">
-      <os-field label="Shop">
-        <select os-select name="merchant" required [(ngModel)]="merchantId">
-          @for (m of merchants(); track m.id) {
-            <option [value]="m.id">{{ m.name }}</option>
-          }
-        </select>
-      </os-field>
-      <os-field label="Name" hint="What uses it, e.g. Webshop.">
-        <input os-input name="name" required maxlength="120" [(ngModel)]="name" />
-      </os-field>
-      <button os-button type="submit" [loading]="creating()">Make key</button>
-    </form>
-
-    @if (created(); as k) {
-      <os-callout tone="info" [title]="'Copy the key for ' + k.merchantName + ' now'">
-        <p class="key">
-          <code>{{ k.key }}</code> <app-copy-button [text]="k.key" what="API key" />
-        </p>
-        <p>It’s only shown this once. If it’s lost, delete it and make a new one.</p>
-      </os-callout>
+    @if (keys() && merchants().length === 0) {
+      <os-empty-state title="No shops yet">
+        <p>A key belongs to a shop, so add a shop first.</p>
+        <div><a os-button [routerLink]="['/n', network(), 'merchants']">Shops</a></div>
+      </os-empty-state>
+    } @else {
+      <form
+        os-setting-card
+        title="Make a key"
+        description="The key is shown once, so copy it into the shop’s system straight away."
+        (ngSubmit)="create()"
+      >
+        <div class="fields">
+          <os-field label="Shop">
+            <select os-select name="merchant" required [(ngModel)]="merchantId">
+              @for (m of merchants(); track m.id) {
+                <option [value]="m.id">{{ m.name }}</option>
+              }
+            </select>
+          </os-field>
+          <os-field label="Name" hint="What uses it, e.g. Webshop.">
+            <input os-input name="name" required maxlength="120" [(ngModel)]="name" />
+          </os-field>
+        </div>
+        <div os-setting-card-footer>
+          <button os-button variant="primary" type="submit" [loading]="creating()">Make key</button>
+        </div>
+      </form>
     }
 
     @if (keys(); as keys) {
+      @if (keys.length === 0 && merchants().length > 0) {
+        <os-empty-state title="No keys yet">
+          <p>Make a key when a shop wants to add parcels from its own system.</p>
+        </os-empty-state>
+      }
       <os-data-table
         caption="API keys"
         [columns]="columns"
@@ -89,8 +108,8 @@ import { shortDate } from '../shared/labels';
         </ng-template>
         <ng-template os-cell="actions" let-k>
           <button
-            os-button
             type="button"
+            os-button
             size="sm"
             variant="ghost"
             tone="danger"
@@ -104,9 +123,12 @@ import { shortDate } from '../shared/labels';
       <os-skeleton [lines]="3" />
     }
 
-    <section class="stack">
-      <h2>Use it</h2>
-      <pre><code>{{ example() }}</code></pre>
+    <section
+      os-setting-card
+      title="Use it"
+      description="Send the key as a Bearer token in the Authorization header."
+    >
+      <pre><code>{{ example }}</code></pre>
       <p class="muted">
         <code>GET /api/v1/points?postcode=…&amp;city=…</code> lists the nearest open points for a
         checkout. <code>GET /api/v1/parcels/&#123;code&#125;</code> reads a parcel back.
@@ -114,20 +136,15 @@ import { shortDate } from '../shared/labels';
     </section>
   `,
   styles: `
-    h2 {
-      margin: 0;
-      font-size: var(--os-text-lg);
-    }
-
     p {
       margin: 0;
     }
 
-    .key {
+    .fields {
       display: flex;
-      gap: var(--os-space-2);
-      align-items: center;
-      overflow-wrap: anywhere;
+      flex-wrap: wrap;
+      gap: var(--os-space-3);
+      align-items: end;
     }
 
     pre {
@@ -145,9 +162,9 @@ export class ApiKeys {
   private readonly api = inject(Api);
   private readonly toaster = inject(Toaster);
   private readonly confirm = inject(ConfirmDialog);
+  private readonly secret = inject(SecretDialog);
   protected readonly keys = signal<ApiKey[] | null>(null);
   protected readonly merchants = signal<Merchant[]>([]);
-  protected readonly created = signal<NewApiKey | null>(null);
   protected readonly error = signal<string | null>(null);
   protected readonly creating = signal(false);
   protected readonly loading = slowLoading();
@@ -163,13 +180,13 @@ export class ApiKeys {
   ];
 
   protected readonly rows = computed(() => (this.keys() ?? []).map((k) => ({ ...k, actions: '' })));
-  protected readonly example = computed(
-    () => `curl ${location.origin}/api/v1/parcels \\
-  -H "Authorization: Bearer ${this.created()?.key ?? 'rk_…'}" \\
+
+  /** Never the real key: the page only ever shows the placeholder. */
+  protected readonly example = `curl ${location.origin}/api/v1/parcels \\
+  -H "Authorization: Bearer rk_…" \\
   -H "Content-Type: application/json" \\
   -d '{"pointId": "…", "reference": "#1042",
-       "customer": {"name": "Mia Jensen", "email": "mia@example.com", "postcode": "2200"}}'`,
-  );
+       "customer": {"name": "Mia Jensen", "email": "mia@example.com", "postcode": "2200"}}'`;
 
   constructor() {
     effect(() => {
@@ -185,10 +202,19 @@ export class ApiKeys {
     this.creating.set(true);
     this.error.set(null);
     try {
-      const k = await this.api.post<NewApiKey>(`${this.base}/api-keys`, { name: this.name, merchantId: this.merchantId }, this.key.value);
+      const k = await this.api.post<NewApiKey>(
+        `${this.base}/api-keys`,
+        { name: this.name, merchantId: this.merchantId },
+        this.key.value,
+      );
       this.key.renew();
-      this.created.set(k);
       this.keys.update((list) => [...(list ?? []), k]);
+      await this.secret.show({
+        title: `Your new key for ${k.merchantName}`,
+        secret: k.key,
+        what: 'API key',
+        instructions: `Put it in ${k.merchantName}’s system as a Bearer token in the Authorization header. Only it can add parcels.`,
+      });
     } catch (error) {
       this.error.set(errorText(error));
     } finally {
@@ -207,7 +233,6 @@ export class ApiKeys {
     try {
       await this.api.delete(`${this.base}/api-keys/${k.id}`);
       this.keys.update((list) => list?.filter((x) => x.id !== k.id) ?? null);
-      if (this.created()?.id === k.id) this.created.set(null);
     } catch (error) {
       this.toaster.show(errorText(error), { tone: 'danger' });
     }

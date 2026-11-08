@@ -2,12 +2,23 @@ import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/cor
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import type { Network } from '@open-relay/contracts';
-import { Button, Callout, Cell, Control, DataTable, Field, PageHeader, Skeleton } from '@openstuff-dev/ui-angular';
-import { Api, errorText } from '../core/api';
-import { IdempotencyKey } from '../core/idempotency';
-import { slowLoading } from '../core/loading';
-import { Session } from '../core/session';
-import { shortDate } from '../shared/labels';
+import {
+  Button,
+  Callout,
+  Cell,
+  Control,
+  DataTable,
+  Field,
+  SectionHeader,
+  SettingCard,
+  SettingCardFooter,
+  Skeleton,
+} from '@openstuff-dev/ui-angular';
+import { Api, errorText } from '../../core/api';
+import { IdempotencyKey } from '../../core/idempotency';
+import { slowLoading } from '../../core/loading';
+import { Session } from '../../core/session';
+import { shortDate } from '../../shared/labels';
 
 /** For server admins: every network on this server. */
 @Component({
@@ -21,20 +32,27 @@ import { shortDate } from '../shared/labels';
     Control,
     DataTable,
     Field,
-    PageHeader,
+    SectionHeader,
+    SettingCard,
+    SettingCardFooter,
     Skeleton,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: { class: 'stack' },
   template: `
     <header
-      os-page-header
+      os-section-header
       title="Networks"
-      description="Each network is a delivery network with its own shops, pick-up points, couriers and parcels."
+      description="Each network is a delivery network with its own shops, pick-up points, couriers and parcels. Networks can’t see each other."
     ></header>
 
-    <form class="inline" (ngSubmit)="create()">
-      <os-field label="New network" [error]="createError()">
+    <form
+      os-setting-card
+      title="Add a network"
+      description="Make a network to start. You become its admin."
+      (ngSubmit)="create()"
+    >
+      <os-field label="Network name" [error]="createError()">
         <input
           os-input
           name="name"
@@ -44,7 +62,11 @@ import { shortDate } from '../shared/labels';
           [(ngModel)]="name"
         />
       </os-field>
-      <button os-button variant="primary" type="submit" [loading]="creating()">Add network</button>
+      <div os-setting-card-footer>
+        <button os-button variant="primary" type="submit" [loading]="creating()">
+          Add network
+        </button>
+      </div>
     </form>
 
     @if (error(); as error) {
@@ -62,22 +84,15 @@ import { shortDate } from '../shared/labels';
           <a [routerLink]="['/n', t.slug]">{{ t.name }}</a>
           <span class="os-cell-sub">{{ t.slug }}</span>
         </ng-template>
-        <ng-template os-cell="createdAt" let-t
-          ><span class="nums">{{ date(t.createdAt) }}</span></ng-template
-        >
+        <ng-template os-cell="createdAt" let-t>
+          <span class="nums">{{ date(t.createdAt) }}</span>
+        </ng-template>
       </os-data-table>
     } @else if (loading.slow()) {
       <os-skeleton [lines]="4" />
     }
   `,
   styles: `
-    .inline {
-      display: flex;
-      flex-wrap: wrap;
-      gap: var(--os-space-3);
-      align-items: end;
-    }
-
     .nums {
       font-variant-numeric: tabular-nums;
     }
@@ -124,7 +139,13 @@ export class Networks {
   private async load(): Promise<void> {
     try {
       this.networks.set(
-        await this.loading.track(this.api.get<Network[]>('/api/networks', { onFresh: (t) => { this.networks.set(t); } })),
+        await this.loading.track(
+          this.api.get<Network[]>('/api/networks', {
+            onFresh: (t) => {
+              this.networks.set(t);
+            },
+          }),
+        ),
       );
     } catch (error) {
       this.error.set(errorText(error));

@@ -1,29 +1,61 @@
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { Button, Callout, Control, Field, PageHeader, Toaster } from '@openstuff-dev/ui-angular';
-import { Api, errorText } from '../core/api';
-import { Session } from '../core/session';
+import {
+  Button,
+  Callout,
+  Control,
+  Field,
+  SectionHeader,
+  SettingCard,
+  SettingCardFooter,
+  Toaster,
+} from '@openstuff-dev/ui-angular';
+import { Api, errorText } from '../../core/api';
+import { Session } from '../../core/session';
 
 /** Your own account: who you are, and your password. */
 @Component({
-  selector: 'app-settings',
-  imports: [FormsModule, Button, Callout, Control, Field, PageHeader],
+  selector: 'app-account',
+  imports: [
+    FormsModule,
+    Button,
+    Callout,
+    Control,
+    Field,
+    SectionHeader,
+    SettingCard,
+    SettingCardFooter,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: { class: 'stack' },
   template: `
-    <header os-page-header title="Settings" description="Your own account."></header>
+    <header
+      os-section-header
+      title="Account"
+      description="Your sign-in details: who you are and the password you use to sign in."
+    ></header>
 
-    @if (session.me(); as me) {
-      <dl class="facts">
-        <dt>Name</dt>
-        <dd>{{ me.name || '—' }}</dd>
-        <dt>Email</dt>
-        <dd>{{ me.email }}</dd>
-      </dl>
-    }
+    <section
+      os-setting-card
+      title="Your details"
+      description="Ask an admin to change your name or email."
+    >
+      @if (session.me(); as me) {
+        <dl class="facts">
+          <dt>Name</dt>
+          <dd>{{ me.name || '—' }}</dd>
+          <dt>Email</dt>
+          <dd>{{ me.email }}</dd>
+        </dl>
+      }
+    </section>
 
-    <form class="stack form" (ngSubmit)="changePassword()">
-      <h2>Change your password</h2>
+    <form
+      os-setting-card
+      title="Password"
+      description="Your other sessions are signed out when you change it."
+      (ngSubmit)="changePassword()"
+    >
       @if (error(); as error) {
         <os-callout tone="danger">{{ error }}</os-callout>
       }
@@ -37,10 +69,7 @@ import { Session } from '../core/session';
           [(ngModel)]="current"
         />
       </os-field>
-      <os-field
-        label="New password"
-        hint="At least 10 characters. Your other sessions are signed out."
-      >
+      <os-field label="New password" hint="At least 10 characters.">
         <input
           os-input
           type="password"
@@ -51,7 +80,7 @@ import { Session } from '../core/session';
           [(ngModel)]="next"
         />
       </os-field>
-      <div>
+      <div os-setting-card-footer>
         <button os-button variant="primary" type="submit" [loading]="saving()">
           Change password
         </button>
@@ -59,15 +88,6 @@ import { Session } from '../core/session';
     </form>
   `,
   styles: `
-    .form {
-      max-inline-size: 28rem;
-    }
-
-    h2 {
-      margin: 0;
-      font-size: var(--os-text-lg);
-    }
-
     .facts {
       display: grid;
       grid-template-columns: max-content 1fr;
@@ -84,7 +104,7 @@ import { Session } from '../core/session';
     }
   `,
 })
-export class Settings {
+export class Account {
   protected readonly session = inject(Session);
   private readonly api = inject(Api);
   private readonly toaster = inject(Toaster);
