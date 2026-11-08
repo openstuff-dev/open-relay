@@ -21,7 +21,7 @@ export async function buildApp(config: Config, pool: Pool): Promise<FastifyInsta
 
   app.get('/api/health', async () => {
     await pool.query('SELECT 1');
-    return { status: 'ok' };
+    return { status: 'ok', version: config.appVersion };
   });
 
   registerAuth(app, pool, config);
