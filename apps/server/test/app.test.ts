@@ -14,6 +14,7 @@ import { distanceKm } from '../src/points.js';
 describe('settings', () => {
   it('starts with defaults when no variables are set', () => {
     expect(loadConfig({})).toMatchObject({
+      appVersion: 'unknown',
       port: 8080,
       host: '0.0.0.0',
       publicUrl: 'http://localhost:8080',
@@ -31,6 +32,7 @@ describe('settings', () => {
   it('reads the variables', () => {
     expect(
       loadConfig({
+        VERSION: ' 1.4.0 ',
         OPENRELAY_PUBLIC_URL: 'https://relay.example.com/',
         OPENRELAY_ADMIN_EMAIL: 'Me@Example.com',
         OPENRELAY_HOLD_DAYS: '7',
@@ -44,6 +46,22 @@ describe('settings', () => {
       geocoderUrl: 'https://nominatim.example.com',
       trustProxy: true,
     });
+  });
+});
+
+describe('health', () => {
+  it('reports the version the image was built from, or unknown for a local build', async () => {
+    // The health check only runs SELECT 1, so a stub pool is enough.
+    const pool = { query: () => Promise.resolve({ rows: [] }) } as unknown as Pool;
+    const built = await buildApp({ ...loadConfig({ VERSION: '1.4.0' }), logLevel: 'silent' }, pool);
+    const local = await buildApp({ ...loadConfig({}), logLevel: 'silent' }, pool);
+    try {
+      expect((await built.inject({ method: 'GET', url: '/api/health' })).json()).toEqual({ status: 'ok', version: '1.4.0' });
+      expect((await local.inject({ method: 'GET', url: '/api/health' })).json()).toEqual({ status: 'ok', version: 'unknown' });
+    } finally {
+      await built.close();
+      await local.close();
+    }
   });
 });
 
