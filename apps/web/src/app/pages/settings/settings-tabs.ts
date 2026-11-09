@@ -1,5 +1,13 @@
 import type { Role } from '@open-relay/contracts';
-import { iconAccount, iconAppearance, iconData, iconKeys, iconMembers, iconNetworks } from '../../shared/icons';
+import {
+  iconAccount,
+  iconAppearance,
+  iconData,
+  iconIntegrations,
+  iconKeys,
+  iconMembers,
+  iconNetworks,
+} from '../../shared/icons';
 
 /** The groups of the Settings menu, in the order they show. */
 export type SettingsGroupKey = 'you' | 'network' | 'server';
@@ -11,7 +19,14 @@ export interface Who {
   readonly isServerAdmin: boolean;
 }
 
-export type SettingsTabId = 'account' | 'appearance' | 'members' | 'api-keys' | 'data' | 'networks';
+export type SettingsTabId =
+  | 'account' |
+  'appearance' |
+  'members' |
+  'api-keys' |
+  'integrations' |
+  'data' |
+  'networks';
 
 export interface SettingsTab {
   readonly id: SettingsTabId;
@@ -31,6 +46,14 @@ export const SETTINGS_TABS: readonly SettingsTab[] = [
   { id: 'appearance', label: 'Appearance', icon: iconAppearance, group: 'you', visible: everyone },
   { id: 'members', label: 'Members', icon: iconMembers, group: 'network', visible: admin },
   { id: 'api-keys', label: 'API keys', icon: iconKeys, group: 'network', visible: admin },
+  // Only server cards for now (OpenVersion, OpenAnnounce), so only server admins see it.
+  {
+    id: 'integrations',
+    label: 'Integrations',
+    icon: iconIntegrations,
+    group: 'network',
+    visible: (who) => who.isServerAdmin,
+  },
   { id: 'data', label: 'Export and import', icon: iconData, group: 'network', visible: admin },
   { id: 'networks', label: 'Networks', icon: iconNetworks, group: 'server', visible: (who) => who.isServerAdmin },
 ];
