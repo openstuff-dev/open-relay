@@ -1,4 +1,14 @@
-import { ChangeDetectionStrategy, Component, computed, effect, inject, input, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  type ElementRef,
+  computed,
+  effect,
+  inject,
+  input,
+  signal,
+  viewChild,
+} from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import type { ApiKey, Merchant, NewApiKey } from '@open-relay/contracts';
@@ -51,13 +61,13 @@ import { shortDate } from '../../shared/labels';
     ></header>
 
     @if (error(); as error) {
-      <os-callout tone="danger">{{ error }}</os-callout>
+      <os-callout tone="danger" title="The API keys didn’t load">{{ error }}</os-callout>
     }
 
     @if (keys() && merchants().length === 0) {
       <os-empty-state title="No shops yet">
         <p>A key belongs to a shop, so add a shop first.</p>
-        <div><a os-button [routerLink]="['/n', network(), 'merchants']">Shops</a></div>
+        <div><a os-button [routerLink]="['/n', network(), 'merchants']">Add a shop</a></div>
       </os-empty-state>
     } @else {
       <form
@@ -75,7 +85,7 @@ import { shortDate } from '../../shared/labels';
             </select>
           </os-field>
           <os-field label="Name" hint="What uses it, e.g. Webshop.">
-            <input os-input name="name" required maxlength="120" [(ngModel)]="name" />
+            <input #nameInput os-input name="name" required maxlength="120" [(ngModel)]="name" />
           </os-field>
         </div>
         <div os-setting-card-footer>
@@ -85,40 +95,47 @@ import { shortDate } from '../../shared/labels';
     }
 
     @if (keys(); as keys) {
-      @if (keys.length === 0 && merchants().length > 0) {
-        <os-empty-state title="No keys yet">
-          <p>Make a key when a shop wants to add parcels from its own system.</p>
-        </os-empty-state>
-      }
-      <os-data-table
-        caption="API keys"
-        [columns]="columns"
-        [rows]="rows()"
-        rowKey="id"
-        empty="No keys yet."
-      >
-        <ng-template os-cell="name" let-k>
-          {{ k.name }}<span class="os-cell-sub">{{ k.merchantName }}</span>
-        </ng-template>
-        <ng-template os-cell="hint" let-k
-          ><code>{{ k.hint }}…</code></ng-template
+      @if (keys.length === 0) {
+        @if (merchants().length > 0) {
+          <os-empty-state title="No keys yet">
+            <p>
+              A key lets a shop’s own system, such as its webshop, add parcels. Make one when a shop
+              asks for it.
+            </p>
+            <div><button os-button type="button" (click)="focusName()">Make key</button></div>
+          </os-empty-state>
+        }
+      } @else {
+        <os-data-table
+          caption="API keys"
+          [columns]="columns"
+          [rows]="rows()"
+          rowKey="id"
+          empty="No keys yet."
         >
-        <ng-template os-cell="lastUsedAt" let-k>
-          <span class="nums">{{ k.lastUsedAt ? date(k.lastUsedAt) : 'Never' }}</span>
-        </ng-template>
-        <ng-template os-cell="actions" let-k>
-          <button
-            type="button"
-            os-button
-            size="sm"
-            variant="ghost"
-            tone="danger"
-            (click)="remove(k)"
+          <ng-template os-cell="name" let-k>
+            {{ k.name }}<span class="os-cell-sub">{{ k.merchantName }}</span>
+          </ng-template>
+          <ng-template os-cell="hint" let-k
+            ><code>{{ k.hint }}…</code></ng-template
           >
-            Delete
-          </button>
-        </ng-template>
-      </os-data-table>
+          <ng-template os-cell="lastUsedAt" let-k>
+            <span class="nums">{{ k.lastUsedAt ? date(k.lastUsedAt) : 'Never' }}</span>
+          </ng-template>
+          <ng-template os-cell="actions" let-k>
+            <button
+              type="button"
+              os-button
+              size="sm"
+              variant="ghost"
+              tone="danger"
+              (click)="remove(k)"
+            >
+              Delete
+            </button>
+          </ng-template>
+        </os-data-table>
+      }
     } @else if (loading.slow()) {
       <os-skeleton [lines]="3" />
     }
@@ -163,6 +180,7 @@ export class ApiKeys {
   private readonly toaster = inject(Toaster);
   private readonly confirm = inject(ConfirmDialog);
   private readonly secret = inject(SecretDialog);
+  private readonly nameInput = viewChild<ElementRef<HTMLInputElement>>('nameInput');
   protected readonly keys = signal<ApiKey[] | null>(null);
   protected readonly merchants = signal<Merchant[]>([]);
   protected readonly error = signal<string | null>(null);
@@ -198,6 +216,12 @@ export class ApiKeys {
     return `/api/n/${encodeURIComponent(this.network())}`;
   }
 
+  protected focusName(): void {
+    const input = this.nameInput()?.nativeElement;
+    input?.focus();
+    input?.select();
+  }
+
   protected async create(): Promise<void> {
     this.creating.set(true);
     this.error.set(null);
@@ -225,7 +249,8 @@ export class ApiKeys {
   protected async remove(k: ApiKey): Promise<void> {
     const ok = await this.confirm.confirm({
       title: `Delete ${k.name} of ${k.merchantName}?`,
-      message: 'Whatever uses it stops working at once.',
+      message:
+        'Whatever uses it can’t add or read parcels from then on. Parcels it already added stay, and you can make the shop a new key.',
       confirmLabel: 'Delete key',
       danger: true,
     });

@@ -50,6 +50,16 @@ jobs:
       - run: npx nx run-many -t test --skip-nx-cache -- --reporter=default --reporter=junit --outputFile.junit=test-results.xml
         continue-on-error: true
 
+      # Settings in a real browser, in its own database. The results are in e2e-results.xml.
+      - run: npx playwright install --with-deps chromium
+      - run: psql -h localhost -U openrelay -d openrelay_test -c 'CREATE DATABASE openrelay_e2e'
+        env:
+          PGPASSWORD: openrelay
+      - run: npx nx run web:e2e
+        continue-on-error: true
+        env:
+          E2E_DATABASE_URL: postgres://openrelay:openrelay@localhost:5432/openrelay_e2e
+
       - name: Report the results
         env:
           OPENUSECASE_URL: ${{ vars.OPENUSECASE_URL }}
@@ -59,3 +69,6 @@ jobs:
           for file in apps/*/test-results.xml packages/*/test-results.xml; do
             npx --yes @openstuff-dev/usecase report --suite "$(basename "$(dirname "$file")")" "$file"
           done
+          if [ -f apps/web/e2e-results.xml ]; then
+            npx --yes @openstuff-dev/usecase report --suite e2e apps/web/e2e-results.xml
+          fi

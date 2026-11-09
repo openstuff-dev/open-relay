@@ -26,3 +26,5 @@ vitest.config.*.timestamp*
 # Copied from zxing-wasm before builds (apps/web/copy-zxing.mjs).
 apps/web/public/zxing/
 test-results.xml
+apps/web/e2e-output/
+apps/web/e2e-results.xml
