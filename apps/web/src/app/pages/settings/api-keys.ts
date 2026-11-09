@@ -16,6 +16,7 @@ import {
   Button,
   Callout,
   Cell,
+  CodeBlock,
   ConfirmDialog,
   Control,
   DataTable,
@@ -52,6 +53,7 @@ import { shortDate } from '../../shared/labels';
     SettingCardBody,
     SettingCardFooter,
     Skeleton,
+    CodeBlock,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: { class: 'stack' },
@@ -148,7 +150,7 @@ import { shortDate } from '../../shared/labels';
       description="Send the key as a Bearer token in the Authorization header."
     >
       <div os-setting-card-body>
-        <pre><code>{{ example }}</code></pre>
+        <os-code-block [code]="example" what="curl command" />
         <p class="muted">
           <code>GET /api/v1/points?postcode=…&amp;city=…</code> lists the nearest open points for a
           checkout. <code>GET /api/v1/parcels/&#123;code&#125;</code> reads a parcel back.
@@ -168,14 +170,6 @@ import { shortDate } from '../../shared/labels';
       align-items: end;
     }
 
-    pre {
-      margin: 0;
-      padding: var(--os-space-4);
-      overflow-x: auto;
-      border-radius: var(--os-radius-md);
-      background: var(--os-bg-surface-200);
-      font-size: var(--os-text-sm);
-    }
   `,
 })
 export class ApiKeys {
