@@ -1,5 +1,8 @@
-import { ChangeDetectionStrategy, Component } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
+import type { Role } from '@open-relay/contracts';
+import { allAnnounceGroups } from '@openstuff-dev/ui';
 import { SectionHeader } from '@openstuff-dev/ui-angular';
+import { Session } from '../../core/session';
 import { ServerConnections } from './server-connections';
 
 /**
@@ -17,7 +20,16 @@ import { ServerConnections } from './server-connections';
       title="Integrations"
       description="Connect other OpenStuff apps. Paste the connection string they give you, and OpenRelay tests it straight away."
     ></header>
-    <app-server-connections />
+    <app-server-connections tenant="network" [announceGroups]="groups()" />
   `,
 })
-export class Integrations {}
+export class Integrations {
+  private readonly session = inject(Session);
+
+  /** Every network a server admin can see, with every role: the groups to create. */
+  protected readonly groups = computed(() =>
+    allAnnounceGroups(this.session.me()?.networks.map((network) => network.slug) ?? [], ROLES),
+  );
+}
+
+const ROLES: readonly Role[] = ['admin', 'merchant', 'courier', 'point'];
