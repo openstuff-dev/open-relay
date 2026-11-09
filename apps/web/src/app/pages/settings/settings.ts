@@ -12,6 +12,7 @@ import { Account } from './account';
 import { Appearance } from './appearance';
 import { ApiKeys } from './api-keys';
 import { Data } from './data';
+import { Integrations } from './integrations';
 import { Members } from './members';
 import { Networks } from './networks';
 import {
@@ -37,6 +38,7 @@ const GROUP_ORDER: readonly SettingsGroupKey[] = ['you', 'network', 'server'];
     Appearance,
     ApiKeys,
     Data,
+    Integrations,
     Members,
     Networks,
     NavLink,
@@ -88,6 +90,9 @@ const GROUP_ORDER: readonly SettingsGroupKey[] = ['you', 'network', 'server'];
           }
           @case ('api-keys') {
             <app-api-keys [network]="network()" />
+          }
+          @case ('integrations') {
+            <app-integrations />
           }
           @case ('data') {
             <app-data [network]="network()" />
