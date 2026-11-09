@@ -24,13 +24,14 @@ import {
   SecretDialog,
   SectionHeader,
   SettingCard,
+  SettingCardBody,
   SettingCardFooter,
   Skeleton,
+  slowLoading,
   Toaster,
 } from '@openstuff-dev/ui-angular';
 import { Api, errorText } from '../../core/api';
 import { IdempotencyKey } from '../../core/idempotency';
-import { slowLoading } from '../../core/loading';
 import { shortDate } from '../../shared/labels';
 
 /** Keys a shop's own system uses to add parcels and find points, until shop plugins exist. */
@@ -48,6 +49,7 @@ import { shortDate } from '../../shared/labels';
     Field,
     SectionHeader,
     SettingCard,
+    SettingCardBody,
     SettingCardFooter,
     Skeleton,
   ],
@@ -76,7 +78,7 @@ import { shortDate } from '../../shared/labels';
         description="The key is shown once, so copy it into the shop’s system straight away."
         (ngSubmit)="create()"
       >
-        <div class="fields">
+        <div os-setting-card-body class="fields">
           <os-field label="Shop">
             <select os-select name="merchant" required [(ngModel)]="merchantId">
               @for (m of merchants(); track m.id) {
@@ -145,11 +147,13 @@ import { shortDate } from '../../shared/labels';
       title="Use it"
       description="Send the key as a Bearer token in the Authorization header."
     >
-      <pre><code>{{ example }}</code></pre>
-      <p class="muted">
-        <code>GET /api/v1/points?postcode=…&amp;city=…</code> lists the nearest open points for a
-        checkout. <code>GET /api/v1/parcels/&#123;code&#125;</code> reads a parcel back.
-      </p>
+      <div os-setting-card-body>
+        <pre><code>{{ example }}</code></pre>
+        <p class="muted">
+          <code>GET /api/v1/points?postcode=…&amp;city=…</code> lists the nearest open points for a
+          checkout. <code>GET /api/v1/parcels/&#123;code&#125;</code> reads a parcel back.
+        </p>
+      </div>
     </section>
   `,
   styles: `

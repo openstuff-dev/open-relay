@@ -21,16 +21,18 @@ import {
   DataTable,
   EmptyState,
   Field,
+  onReturn,
   SecretDialog,
   SectionHeader,
   SettingCard,
+  SettingCardBody,
   SettingCardFooter,
   Skeleton,
+  slowLoading,
   Toaster,
 } from '@openstuff-dev/ui-angular';
 import { Api, errorText } from '../../core/api';
 import { IdempotencyKey } from '../../core/idempotency';
-import { onReturn, slowLoading } from '../../core/loading';
 import { Session } from '../../core/session';
 import { ROLE_LABELS } from '../../shared/labels';
 
@@ -50,6 +52,7 @@ const ROLES: Role[] = ['merchant', 'courier', 'point', 'admin'];
     Field,
     SectionHeader,
     SettingCard,
+    SettingCardBody,
     SettingCardFooter,
     Skeleton,
   ],
@@ -72,7 +75,7 @@ const ROLES: Role[] = ['merchant', 'courier', 'point', 'admin'];
       description="They get a password, shown once, for you to pass on."
       (ngSubmit)="add()"
     >
-      <div class="fields">
+      <div os-setting-card-body class="fields">
         <os-field label="Email" [error]="addError()">
           <input #emailInput os-input type="email" name="email" required [(ngModel)]="email" />
         </os-field>

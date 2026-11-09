@@ -1,10 +1,10 @@
 import { ChangeDetectionStrategy, Component } from '@angular/core';
-import { SectionHeader, SettingCard, ThemePicker } from '@openstuff-dev/ui-angular';
+import { SectionHeader, SettingCard, SettingCardBody, ThemePicker } from '@openstuff-dev/ui-angular';
 
 /** The light or dark choice. It's kept in this browser, not on the server. */
 @Component({
   selector: 'app-appearance',
-  imports: [SectionHeader, SettingCard, ThemePicker],
+  imports: [SectionHeader, SettingCard, SettingCardBody, ThemePicker],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: { class: 'stack' },
   template: `
@@ -15,7 +15,7 @@ import { SectionHeader, SettingCard, ThemePicker } from '@openstuff-dev/ui-angul
     ></header>
 
     <section os-setting-card title="Theme" description="System follows your device's setting.">
-      <os-theme-picker label="Theme" />
+      <div os-setting-card-body><os-theme-picker label="Theme" /></div>
     </section>
   `,
 })

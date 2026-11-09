@@ -26,11 +26,12 @@ import {
   DialogTitle,
   Field,
   Icon,
+  onReturn,
   PageHeader,
   Skeleton,
+  slowLoading,
 } from '@openstuff-dev/ui-angular';
 import { Api, errorText } from '../core/api';
-import { onReturn, slowLoading } from '../core/loading';
 import { Session } from '../core/session';
 import { iconPlus, iconPrint, iconUpload } from '../shared/icons';
 import { STATUS_LABELS, STATUS_TONES, code, shortDate } from '../shared/labels';

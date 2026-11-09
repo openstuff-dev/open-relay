@@ -6,6 +6,7 @@ import {
   Field,
   SectionHeader,
   SettingCard,
+  SettingCardBody,
   SettingCardFooter,
 } from '@openstuff-dev/ui-angular';
 import { Api, errorText } from '../../core/api';
@@ -20,7 +21,16 @@ interface ImportResult {
 /** Everything in this network as one JSON file, and back again. */
 @Component({
   selector: 'app-data',
-  imports: [Button, Callout, Field, FileInput, SectionHeader, SettingCard, SettingCardFooter],
+  imports: [
+    Button,
+    Callout,
+    Field,
+    FileInput,
+    SectionHeader,
+    SettingCard,
+    SettingCardBody,
+    SettingCardFooter,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: { class: 'stack' },
   template: `
@@ -45,26 +55,28 @@ interface ImportResult {
       title="Import"
       description="Adds what’s in an export file to this network. Shops and points with the same slug are updated. Parcels already on this server are skipped; the others get new tracking links and pickup codes, and no emails go out."
     >
-      <os-field label="Export file">
-        <input
-          type="file"
-          os-file-input
-          accept="application/json,.json"
-          (change)="pick($event)"
-          [disabled]="busy()"
-        />
-      </os-field>
-      @if (result(); as r) {
-        <os-callout tone="success" title="Imported">
-          {{ r.merchants }} shops, {{ r.points }} pick-up points and {{ r.parcels }} parcels.
-          @if (r.skipped) {
-            {{ r.skipped }} parcels were on this server already, so they were skipped.
-          }
-        </os-callout>
-      }
-      @if (error(); as error) {
-        <os-callout tone="danger" title="Nothing was imported">{{ error }}</os-callout>
-      }
+      <div os-setting-card-body>
+        <os-field label="Export file">
+          <input
+            type="file"
+            os-file-input
+            accept="application/json,.json"
+            (change)="pick($event)"
+            [disabled]="busy()"
+          />
+        </os-field>
+        @if (result(); as r) {
+          <os-callout tone="success" title="Imported">
+            {{ r.merchants }} shops, {{ r.points }} pick-up points and {{ r.parcels }} parcels.
+            @if (r.skipped) {
+              {{ r.skipped }} parcels were on this server already, so they were skipped.
+            }
+          </os-callout>
+        }
+        @if (error(); as error) {
+          <os-callout tone="danger" title="Nothing was imported">{{ error }}</os-callout>
+        }
+      </div>
     </section>
   `,
 })
