@@ -53,7 +53,7 @@ describe('server connections', () => {
     expect(announce.environment?.signingSecret).toBe('signing-secret-value');
   });
 
-  it('UC-5/S5 answers 409 when the server configuration sets the connection', async () => {
+  it('UC-6/S4 answers 409 when the server configuration sets the OpenAnnounce connection', async () => {
     const rows: Record<string, unknown>[] = [];
     const db: Queryable = {
       query: (text: string) =>
@@ -96,7 +96,37 @@ describe('server connections', () => {
     await app.close();
   });
 
-  it('UC-5/S6 refuses everyone but a server admin', async () => {
+  it('UC-5/S5 shows the OpenVersion connection set by the server configuration as read-only', async () => {
+    const config = loadConfig({
+      OPENRELAY_OPENVERSION_URL: 'https://versions.example.com',
+      OPENRELAY_OPENVERSION_PUBLIC_KEY: 'ov_pub_12345678',
+      OPENRELAY_OPENVERSION_DEPLOY_TOKEN: 'ov_deploy_from_env_1234',
+    });
+    const app = Fastify();
+    registerIntegrationRoutes(app, {
+      db: { query: () => Promise.resolve({ rows: [] }) },
+      vault: () => Promise.reject(new Error('the vault must not be opened for an environment connection')),
+      policy: policyFrom(config),
+      origin: 'https://relay.example.com',
+      appName: 'OpenRelay',
+      offers: integrationOffers(config),
+      isServerAdmin: () => true,
+    });
+    const list = await app.inject({ method: 'GET', url: '/api/admin/integrations' });
+    expect(list.json()).toContainEqual(
+      expect.objectContaining({ kind: 'openversion', status: 'set-by-server', source: 'environment' }),
+    );
+    expect(list.body).not.toContain('ov_deploy_from_env_1234');
+    const save = await app.inject({
+      method: 'PUT',
+      url: '/api/admin/integrations/openversion',
+      payload: { url: 'https://other.example.com', publicKey: 'pk_other_12345678' },
+    });
+    expect(save.statusCode).toBe(409);
+    await app.close();
+  });
+
+  it('UC-5/S6 UC-6/S5 refuses everyone but a server admin', async () => {
     const config = loadConfig({});
     const app = Fastify();
     registerIntegrationRoutes(app, {
