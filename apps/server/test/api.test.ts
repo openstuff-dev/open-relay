@@ -2,7 +2,8 @@ import { fileURLToPath } from 'node:url';
 import type { FastifyInstance } from 'fastify';
 import pg from 'pg';
 import { verifyUser } from '@openstuff-dev/announce/server';
-import { vaultFor } from '@openstuff-dev/server';
+import { makeConnectionString, type ServerIntegration, vaultFor } from '@openstuff-dev/server';
+import { type StandIn, standInOpenAnnounce, standInOpenVersion } from '@openstuff-dev/server/testing';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import type {
   Me,
@@ -388,7 +389,7 @@ describe.skipIf(!url)('API against Postgres', () => {
     expect(points.body).toHaveLength(3);
   });
 
-  it('UC-5/S6 keeps a saved signing secret out of the admin list and an export', async () => {
+  it('UC-6/S5 keeps a saved signing secret out of the admin list and an export', async () => {
     const secret = 'sig_relay_saved_secret_51c8e0';
     const sealed = vaultFor(config.secretKey).seal(secret);
     await pool.query(
@@ -486,5 +487,126 @@ describe.skipIf(!url)('API against Postgres', () => {
   it('refuses changes posted from another site', async () => {
     const response = await call(as.admin, 'POST', `${n}/scan`, { code: 'X' }, { origin: 'https://evil.example' });
     expect(response.status).toBe(403);
+  });
+
+  // The same database, with a server that may reach the stand-ins on 127.0.0.1, as a self-hosted
+  // one with OPENRELAY_FETCH=private would. Sessions live in the database, so cookies still work.
+  describe('connecting by pasting a connection string', () => {
+    const RELAY = 'https://relay.example.com';
+    const KEY = 'pk_relay_app_12345678';
+    const DEPLOY = 'ov_relay_deploy_12345678';
+    const FEED_KEY = 'pk_relay_feed_12345678';
+    const SIGNING = 'sig_relay_paste_secret_93b1';
+    let wired: FastifyInstance;
+    let ov: StandIn;
+    let oa: StandIn;
+
+    const put = (kind: string, connectionString: string) =>
+      wired.inject({
+        method: 'PUT',
+        url: `/api/admin/integrations/${kind}`,
+        payload: { connectionString },
+        headers: { cookie: as.root },
+      });
+    const card = (response: { json: () => unknown }) => response.json() as ServerIntegration;
+
+    beforeAll(async () => {
+      ov = await standInOpenVersion({
+        publicKey: KEY,
+        deployToken: DEPLOY,
+        allowedOrigins: [RELAY],
+      });
+      oa = await standInOpenAnnounce({ publicKey: FEED_KEY, allowedOrigins: [RELAY] });
+      wired = await buildApp({ ...config, publicUrl: RELAY, fetch: 'private' }, pool);
+    });
+
+    afterAll(async () => {
+      await pool.query('DELETE FROM server_integrations');
+      await wired.close();
+      await ov.close();
+      await oa.close();
+    });
+
+    it('UC-5/S1 one paste of an OpenVersion string connects it, tested straight away with this server’s origin', async () => {
+      ov.requests.length = 0;
+      const response = await put('openversion', makeConnectionString('openversion', { url: ov.url, publicKey: KEY, deployToken: DEPLOY }));
+      expect(response.statusCode).toBe(200);
+      expect(card(response)).toMatchObject({ status: 'connected', hasDeployToken: true, source: 'database' });
+      expect(ov.requests.find((r) => r.path.startsWith('/api/v1/version'))?.headers.origin).toBe(RELAY);
+      expect(response.body).not.toContain(DEPLOY);
+    });
+
+    it('UC-5/S2 a key OpenVersion doesn’t know, or an origin it doesn’t allow, says what to fix', async () => {
+      const unknown = await put('openversion', makeConnectionString('openversion', { url: ov.url, publicKey: 'pk_unknown_12345678' }));
+      expect(card(unknown)).toMatchObject({ status: 'problem' });
+      expect(card(unknown).message).toContain('OpenVersion doesn’t recognise this public key');
+
+      const strict = await standInOpenVersion({ publicKey: KEY, allowedOrigins: ['https://elsewhere.example.com'] });
+      try {
+        const blocked = await put('openversion', makeConnectionString('openversion', { url: strict.url, publicKey: KEY }));
+        expect(card(blocked).message).toContain(`Add ${RELAY} to allowed origins in OpenVersion`);
+        expect(card(blocked).copy).toBe(RELAY);
+      } finally {
+        await strict.close();
+      }
+    });
+
+    it('UC-5/S2 an address that doesn’t answer says so, and a string from OpenAnnounce is refused by name', async () => {
+      const gone = await standInOpenVersion({ publicKey: KEY });
+      await gone.close();
+      const down = await put('openversion', makeConnectionString('openversion', { url: gone.url, publicKey: KEY }));
+      expect(card(down).message).toContain('That address didn’t answer');
+
+      const wrong = await put('openversion', makeConnectionString('openannounce', { url: oa.url, publicKey: FEED_KEY }));
+      expect(wrong.statusCode).toBe(400);
+      expect(wrong.json()).toEqual({ error: 'That’s a connection string from OpenAnnounce. Paste one from OpenVersion.' });
+    });
+
+    it('UC-6/S1 one paste of an OpenAnnounce string connects it, and the web app gets it without a restart', async () => {
+      const response = await put('openannounce', makeConnectionString('openannounce', { url: oa.url, publicKey: FEED_KEY, signingSecret: SIGNING }));
+      expect(card(response)).toMatchObject({ status: 'connected', hasSigningSecret: true });
+      const client = await wired.inject({ method: 'GET', url: '/api/client-config' });
+      expect(client.json()).toMatchObject({ openannounce: { url: oa.url, publicKey: FEED_KEY } });
+      expect(client.body).not.toContain(SIGNING);
+    });
+
+    it('UC-6/S2 a key OpenAnnounce doesn’t know, or an origin it doesn’t allow, says what to fix', async () => {
+      const unknown = await put('openannounce', makeConnectionString('openannounce', { url: oa.url, publicKey: 'pk_unknown_12345678' }));
+      expect(card(unknown).message).toContain('OpenAnnounce doesn’t recognise this public key');
+
+      const strict = await standInOpenAnnounce({ publicKey: FEED_KEY, allowedOrigins: ['https://elsewhere.example.com'] });
+      try {
+        const blocked = await put('openannounce', makeConnectionString('openannounce', { url: strict.url, publicKey: FEED_KEY }));
+        expect(card(blocked).message).toContain(`Add ${RELAY} to allowed origins in OpenAnnounce`);
+        expect(card(blocked).copy).toBe(RELAY);
+      } finally {
+        await strict.close();
+      }
+      const wrong = await put('openannounce', makeConnectionString('openversion', { url: ov.url, publicKey: KEY }));
+      expect(wrong.statusCode).toBe(400);
+    });
+
+    it('UC-6/S3 connected with no signing secret, the card says none is saved and nobody gets a token', async () => {
+      await pool.query("DELETE FROM server_integrations WHERE kind = 'openannounce'");
+      const response = await put('openannounce', makeConnectionString('openannounce', { url: oa.url, publicKey: FEED_KEY }));
+      expect(card(response)).toMatchObject({ status: 'connected', hasSigningSecret: false });
+      const token = await wired.inject({ method: 'GET', url: '/api/openannounce-token?network=demo', headers: { cookie: as.courier } });
+      expect(token.statusCode).toBe(204);
+    });
+
+    it('UC-7/S5 switching network signs the groups of the network switched to', async () => {
+      await put('openannounce', makeConnectionString('openannounce', { url: oa.url, publicKey: FEED_KEY, signingSecret: SIGNING }));
+      expect((await call(as.root, 'POST', '/api/networks', { name: 'Beta', slug: 'beta' })).status).toBe(201);
+      const added = await call(as.root, 'POST', '/api/n/beta/members', { email: DEMO_MEMBERS.courier.email, role: 'courier' });
+      expect(added.status).toBe(201);
+      const groupsIn = async (network: string) => {
+        const token = await wired.inject({ method: 'GET', url: `/api/openannounce-token?network=${network}`, headers: { cookie: as.courier } });
+        const verified = await verifyUser(SIGNING, token.body);
+        if (!verified.ok) throw new Error(verified.error);
+        return verified.claims.groups;
+      };
+      expect(await groupsIn('demo')).toEqual(['t-demo', 'role-courier', 't-demo-role-courier']);
+      expect(await groupsIn('beta')).toEqual(['t-beta', 'role-courier', 't-beta-role-courier']);
+    });
   });
 });
