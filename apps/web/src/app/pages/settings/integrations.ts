@@ -18,7 +18,7 @@ import { ServerConnections } from './server-connections';
     <header
       os-section-header
       title="Integrations"
-      description="Connect other OpenStuff apps. Paste the connection string they give you, and OpenRelay tests it straight away."
+      description="Connect OpenRelay to the rest of OpenStuff. Each one is optional, and nothing changes until you paste the connection string it gives you."
     ></header>
     <app-server-connections tenant="network" [announceGroups]="groups()" />
   `,

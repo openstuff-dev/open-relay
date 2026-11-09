@@ -5,6 +5,13 @@ export default [
   { ignores: ['src/tokens'] },
   ...angular,
   {
+    // The browser tests and their config sit outside the tsconfig, which only builds src.
+    files: ['**/*.ts'],
+    languageOptions: {
+      parserOptions: { projectService: { allowDefaultProject: ['e2e/*.ts', 'playwright.config.ts'] } },
+    },
+  },
+  {
     files: ['**/*.ts'],
     rules: {
       '@angular-eslint/component-selector': ['error', { type: 'element', prefix: 'app', style: 'kebab-case' }],

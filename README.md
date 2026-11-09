@@ -147,6 +147,15 @@ TEST_DATABASE_URL=postgres://openrelay:openrelay@localhost:5432/openrelay_test \
 
 Without `TEST_DATABASE_URL` those tests are skipped.
 
+Settings also has tests in a real browser (Playwright). They start the server on port 18120 with
+a database whose name must end in `_e2e`, and they add networks to it:
+
+```sh
+docker exec openrelay-db psql -U openrelay -c 'CREATE DATABASE openrelay_e2e'
+npx playwright install chromium   # or E2E_CHROME_CHANNEL=chrome to use your installed Chrome
+E2E_DATABASE_URL=postgres://openrelay:openrelay@localhost:5432/openrelay_e2e npx nx run web:e2e
+```
+
 ## Layout
 
 | Folder | What’s in it |
