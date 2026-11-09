@@ -9,10 +9,10 @@ import {
   Icon,
   PageHeader,
   Skeleton,
+  slowLoading,
   Toaster,
 } from '@openstuff-dev/ui-angular';
 import { Api, errorText } from '../core/api';
-import { slowLoading } from '../core/loading';
 import { Session } from '../core/session';
 import { CopyButton } from '../shared/copy-button';
 import { iconPrint } from '../shared/icons';

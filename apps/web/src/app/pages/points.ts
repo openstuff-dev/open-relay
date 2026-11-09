@@ -18,14 +18,15 @@ import {
   DialogTitle,
   Field,
   Icon,
+  onReturn,
   PageHeader,
   Skeleton,
+  slowLoading,
   Switch,
   Toaster,
 } from '@openstuff-dev/ui-angular';
 import { Api, errorText } from '../core/api';
 import { IdempotencyKey } from '../core/idempotency';
-import { onReturn, slowLoading } from '../core/loading';
 import { iconPlus } from '../shared/icons';
 import { WEEKDAYS } from '../shared/labels';
 

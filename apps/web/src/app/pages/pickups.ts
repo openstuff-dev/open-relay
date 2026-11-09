@@ -1,9 +1,17 @@
 import { ChangeDetectionStrategy, Component, DestroyRef, effect, inject, input, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import type { PickupStop } from '@open-relay/contracts';
-import { Button, Callout, EmptyState, Icon, PageHeader, Skeleton } from '@openstuff-dev/ui-angular';
+import {
+  Button,
+  Callout,
+  EmptyState,
+  Icon,
+  onReturn,
+  PageHeader,
+  Skeleton,
+  slowLoading,
+} from '@openstuff-dev/ui-angular';
 import { Api, errorText } from '../core/api';
-import { onReturn, slowLoading } from '../core/loading';
 import { iconScan } from '../shared/icons';
 import { code } from '../shared/labels';
 

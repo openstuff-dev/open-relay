@@ -6,9 +6,9 @@ import {
   ServerConnectionCard,
   type ServerConnectionsClient,
   Skeleton,
+  slowLoading,
 } from '@openstuff-dev/ui-angular';
 import { Api, errorText } from '../../core/api';
-import { slowLoading } from '../../core/loading';
 
 /**
  * "This server" on Integrations, for server admins: the connections to OpenVersion and
