@@ -14,7 +14,7 @@
     "@fastify/cookie": "^11.1.5",
     "@fastify/static": "^10.1.7",
     "@open-relay/contracts": "*",
-    "@openstuff-dev/server": "^0.4.0",
+    "@openstuff-dev/server": "^0.5.0",
     "fastify": "^5.12.7",
     "nodemailer": "^10.3.1",
     "pg": "^8.23.1",
@@ -22,6 +22,7 @@
     "zod": "^4.6.6"
   },
   "devDependencies": {
+    "@openstuff-dev/announce": "^0.1.0",
     "@types/node": "^24.0.0",
     "@types/nodemailer": "^8.0.2",
     "@types/pg": "^8.23.1",
