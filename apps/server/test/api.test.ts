@@ -412,7 +412,7 @@ describe.skipIf(!url)('API against Postgres', () => {
     }
   });
 
-  it('UC-7/S1 S2 S7 signs an opaque id and the groups for the network, never a name or email', async () => {
+  it('UC-7/S1 UC-7/S2 UC-7/S7 signs an opaque id and the groups for the network, never a name or email', async () => {
     const secret = 'sig_relay_token_secret_7a1f20';
     await pool.query(
       `INSERT INTO server_integrations (kind, url, public_key, signing_secret_encrypted)
