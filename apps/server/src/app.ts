@@ -1,6 +1,11 @@
 import fastifyCookie from '@fastify/cookie';
 import fastifyStatic from '@fastify/static';
-import { loadVault, registerIntegrationRoutes, type Vault } from '@openstuff-dev/server';
+import {
+  loadVault,
+  publishVersionOnStart,
+  registerIntegrationRoutes,
+  type Vault,
+} from '@openstuff-dev/server';
 import Fastify, { type FastifyInstance } from 'fastify';
 import { registerAuth, requireAccount } from './auth.js';
 import { type Config, policyFrom } from './config.js';
@@ -46,14 +51,24 @@ export async function buildApp(config: Config, pool: Pool): Promise<FastifyInsta
     });
     return vault;
   };
+  const offers = integrationOffers(config);
   registerIntegrationRoutes(app, {
     db: pool,
     vault: openVault,
     policy: policyFrom(config),
     origin: new URL(config.publicUrl).origin,
     appName: 'OpenRelay',
-    offers: integrationOffers(config),
+    offers,
     isServerAdmin: (request) => requireAccount(request).isServerAdmin,
+  });
+  const [versionOffer] = offers;
+  publishVersionOnStart(app, {
+    db: pool,
+    vault: openVault,
+    offer: versionOffer,
+    policy: policyFrom(config),
+    appName: 'OpenRelay',
+    version: config.appVersion,
   });
 
   if (config.webDir) {

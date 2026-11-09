@@ -411,6 +411,30 @@ describe.skipIf(!url)('API against Postgres', () => {
     }
   });
 
+  it('UC-5/S6 keeps a saved deploy token out of the admin list and an export', async () => {
+    const token = 'ov_relay_saved_deploy_token_8f2a';
+    const sealed = vaultFor(config.secretKey).seal(token);
+    await pool.query(
+      `INSERT INTO server_integrations (kind, url, public_key, deploy_token_encrypted)
+       VALUES ('openversion', 'https://versions.example.com', 'pk_versions_12345678', $1)
+       ON CONFLICT (kind) DO UPDATE SET deploy_token_encrypted = EXCLUDED.deploy_token_encrypted`,
+      [sealed],
+    );
+    try {
+      const list = await call(as.root, 'GET', '/api/admin/integrations');
+      expect(list.status).toBe(200);
+      expect(JSON.stringify(list.body)).toContain('"hasDeployToken":true');
+      expect(JSON.stringify(list.body)).not.toContain(token);
+
+      const exported = await call(as.admin, 'GET', `${n}/export`);
+      expect(exported.status).toBe(200);
+      expect(JSON.stringify(exported.body)).not.toContain(token);
+      expect(JSON.stringify(exported.body)).not.toContain('deploy_token');
+    } finally {
+      await pool.query("DELETE FROM server_integrations WHERE kind = 'openversion'");
+    }
+  });
+
   it('makes a scan in a few round trips: session, access, then one transaction', async () => {
     const parcel = await newParcel();
     const spy = vi.spyOn(pg.Client.prototype, 'query');
