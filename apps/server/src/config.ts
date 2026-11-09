@@ -30,7 +30,12 @@ export interface Config {
   /** Encrypts saved connection secrets. Without one, a key is made and kept in the database. */
   secretKey: string | undefined;
   /** OpenVersion and OpenAnnounce this server connects to. Set here, they win over the tab. */
-  openVersion: { url: string | undefined; publicKey: string | undefined };
+  openVersion: {
+    url: string | undefined;
+    publicKey: string | undefined;
+    /** Lets this server publish its own version to OpenVersion on start. Never sent to browsers. */
+    deployToken: string | undefined;
+  };
   openAnnounce: {
     url: string | undefined;
     publicKey: string | undefined;
@@ -65,6 +70,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     openVersion: {
       url: env.OPENRELAY_OPENVERSION_URL?.replace(/\/$/, '') || undefined,
       publicKey: env.OPENRELAY_OPENVERSION_PUBLIC_KEY || undefined,
+      deployToken: env.OPENRELAY_OPENVERSION_DEPLOY_TOKEN || undefined,
     },
     openAnnounce: {
       url: env.OPENRELAY_OPENANNOUNCE_URL?.replace(/\/$/, '') || undefined,

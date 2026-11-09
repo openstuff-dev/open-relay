@@ -7,7 +7,11 @@ import { integrationOffers } from '../src/integrations.js';
 describe('server connections', () => {
   it('offers no connection until a variable sets one', () => {
     const config = loadConfig({});
-    expect(config.openVersion).toEqual({ url: undefined, publicKey: undefined });
+    expect(config.openVersion).toEqual({
+      url: undefined,
+      publicKey: undefined,
+      deployToken: undefined,
+    });
     expect(config.fetch).toBe('public');
     expect(integrationOffers(config).map((offer) => offer.environment)).toEqual([null, null]);
   });
@@ -43,6 +47,7 @@ describe('server connections', () => {
     );
     const [version, announce] = offers;
     expect(version.signingSecret).toBe(false);
+    expect(version.deployToken).toBe(true);
     expect(version.environment).toEqual({ url: 'https://versions.example.com', publicKey: 'ov_pub_12345678' });
     expect(announce.signingSecret).toBe(true);
     expect(announce.environment?.signingSecret).toBe('signing-secret-value');

@@ -13,7 +13,13 @@ import type { Config } from './config.js';
 export function integrationOffers(config: Config): IntegrationOffer[] {
   const { openVersion: version, openAnnounce: announce } = config;
   const versionEnv: ConnectionDetails | null =
-    version.url && version.publicKey ? { url: version.url, publicKey: version.publicKey } : null;
+    version.url && version.publicKey
+      ? {
+          url: version.url,
+          publicKey: version.publicKey,
+          ...(version.deployToken ? { deployToken: version.deployToken } : {}),
+        }
+      : null;
   const announceEnv: ConnectionDetails | null =
     announce.url && announce.publicKey
       ? {
@@ -23,7 +29,13 @@ export function integrationOffers(config: Config): IntegrationOffer[] {
         }
       : null;
   return [
-    { kind: openVersion, signingSecret: false, environment: versionEnv, envPrefix: 'OPENRELAY_OPENVERSION' },
+    {
+      kind: openVersion,
+      signingSecret: false,
+      deployToken: true,
+      environment: versionEnv,
+      envPrefix: 'OPENRELAY_OPENVERSION',
+    },
     { kind: openAnnounce, signingSecret: true, environment: announceEnv, envPrefix: 'OPENRELAY_OPENANNOUNCE' },
   ];
 }
