@@ -1,13 +1,15 @@
 import fastifyCookie from '@fastify/cookie';
 import fastifyStatic from '@fastify/static';
+import type { Role } from '@open-relay/contracts';
 import {
+  announceGroups,
   loadVault,
   publishVersionOnStart,
   registerIntegrationRoutes,
   type Vault,
 } from '@openstuff-dev/server';
 import Fastify, { type FastifyInstance } from 'fastify';
-import { registerAuth, requireAccount } from './auth.js';
+import { networkAccess, registerAuth, requireAccount } from './auth.js';
 import { type Config, policyFrom } from './config.js';
 import type { Pool } from './db.js';
 import { registerErrorHandler } from './errors.js';
@@ -18,6 +20,9 @@ import { registerNetworkRoutes } from './routes/networks.js';
 import { registerParcelRoutes } from './routes/parcels.js';
 import { registerPlaceRoutes } from './routes/places.js';
 import { registerTransferRoutes } from './routes/transfer.js';
+
+/** Every role: anyone in a network may read their own OpenAnnounce token. */
+const ALL_ROLES: readonly Role[] = ['admin', 'merchant', 'courier', 'point'];
 
 export async function buildApp(config: Config, pool: Pool): Promise<FastifyInstance> {
   const app = Fastify({ logger: { level: config.logLevel }, trustProxy: config.trustProxy });
@@ -60,6 +65,15 @@ export async function buildApp(config: Config, pool: Pool): Promise<FastifyInsta
     appName: 'OpenRelay',
     offers,
     isServerAdmin: (request) => requireAccount(request).isServerAdmin,
+    // OpenAnnounce sees the account's id and the groups for the network in `?network=`, never a
+    // name or an email. Someone not in that network gets 404 from networkAccess.
+    announceUser: async (request) => {
+      if (!request.account) return null;
+      const { network } = request.query as { network?: unknown };
+      if (typeof network !== 'string' || !network) return { sub: request.account.id, groups: [] };
+      const access = await networkAccess(pool, request, network, ALL_ROLES);
+      return { sub: request.account.id, groups: announceGroups(network, access.role) };
+    },
   });
   const [versionOffer] = offers;
   publishVersionOnStart(app, {

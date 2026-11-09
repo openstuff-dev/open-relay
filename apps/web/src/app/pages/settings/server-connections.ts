@@ -1,5 +1,6 @@
-import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, input, signal } from '@angular/core';
 import {
+  AnnounceGroups,
   Callout,
   type ServerConnection,
   ServerConnectionCard,
@@ -16,7 +17,7 @@ import { slowLoading } from '../../core/loading';
  */
 @Component({
   selector: 'app-server-connections',
-  imports: [Callout, ServerConnectionCard, Skeleton],
+  imports: [AnnounceGroups, Callout, ServerConnectionCard, Skeleton],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: { class: 'stack' },
   template: `
@@ -29,7 +30,11 @@ import { slowLoading } from '../../core/loading';
     }
     @if (connections(); as connections) {
       @for (connection of connections; track connection.kind) {
-        <os-server-connection-card [connection]="connection" [client]="client" />
+        <os-server-connection-card [connection]="connection" [client]="client">
+          @if (connection.kind === 'openannounce') {
+            <os-announce-groups [groups]="announceGroups()" [tenant]="tenant()" />
+          }
+        </os-server-connection-card>
       }
     } @else if (loading.slow()) {
       <os-skeleton [lines]="4" />
@@ -54,6 +59,11 @@ import { slowLoading } from '../../core/loading';
   `,
 })
 export class ServerConnections {
+  /** The OpenAnnounce groups to create: `allAnnounceGroups(tenants, roles)` from the toolkit. */
+  readonly announceGroups = input<readonly string[]>([]);
+  /** What this app calls a tenant, lower case. */
+  readonly tenant = input('tenant');
+
   private readonly api = inject(Api);
   protected readonly connections = signal<ServerConnection[] | null>(null);
   protected readonly error = signal<string | null>(null);

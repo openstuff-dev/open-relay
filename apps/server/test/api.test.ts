@@ -1,6 +1,7 @@
 import { fileURLToPath } from 'node:url';
 import type { FastifyInstance } from 'fastify';
 import pg from 'pg';
+import { verifyUser } from '@openstuff-dev/announce/server';
 import { vaultFor } from '@openstuff-dev/server';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import type {
@@ -409,6 +410,42 @@ describe.skipIf(!url)('API against Postgres', () => {
     } finally {
       await pool.query("DELETE FROM server_integrations WHERE kind = 'openannounce'");
     }
+  });
+
+  it('UC-7/S1 S2 S7 signs an opaque id and the groups for the network, never a name or email', async () => {
+    const secret = 'sig_relay_token_secret_7a1f20';
+    await pool.query(
+      `INSERT INTO server_integrations (kind, url, public_key, signing_secret_encrypted)
+       VALUES ('openannounce', 'https://news.example.com', 'pk_news_token_12345678', $1)
+       ON CONFLICT (kind) DO UPDATE SET signing_secret_encrypted = EXCLUDED.signing_secret_encrypted`,
+      [vaultFor(config.secretKey).seal(secret)],
+    );
+    try {
+      const token = await call(as.courier, 'GET', '/api/openannounce-token?network=demo');
+      expect(token.status).toBe(200);
+      const verified = await verifyUser(secret, token.raw.body);
+      if (!verified.ok) throw new Error(verified.error);
+      expect(verified.claims.groups).toEqual(['t-demo', 'role-courier', 't-demo-role-courier']);
+      const me = await call<Me>(as.courier, 'GET', '/api/me');
+      expect(verified.claims.sub).toBe(me.body.id);
+      expect(token.raw.body).not.toContain(DEMO_MEMBERS.courier.email);
+      expect(JSON.stringify(verified.claims)).not.toContain(me.body.name);
+
+      const noNetwork = await call(as.courier, 'GET', '/api/openannounce-token');
+      const plain = await verifyUser(secret, noNetwork.raw.body);
+      expect(plain.ok && plain.claims.groups).toEqual([]);
+
+      const elsewhere = await call(as.courier, 'GET', '/api/openannounce-token?network=nowhere');
+      expect(elsewhere.status).toBe(404);
+      expect((await call(null, 'GET', '/api/openannounce-token')).status).toBe(401);
+    } finally {
+      await pool.query("DELETE FROM server_integrations WHERE kind = 'openannounce'");
+    }
+  });
+
+  it('UC-6/S6 gives no OpenAnnounce token once the connection is removed', async () => {
+    const response = await call(as.courier, 'GET', '/api/openannounce-token?network=demo');
+    expect(response.status).toBe(204);
   });
 
   it('UC-5/S6 keeps a saved deploy token out of the admin list and an export', async () => {
