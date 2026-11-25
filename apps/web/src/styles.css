@@ -18,30 +18,6 @@ body {
   align-content: start;
 }
 
-/* Sidebar links. The toolkit's .os-shell has no nav link style yet, so this is local for now. */
-.nav-link {
-  display: flex;
-  gap: var(--os-space-2);
-  align-items: center;
-  min-block-size: 2.25rem;
-  padding-inline: var(--os-space-3);
-  border-radius: var(--os-radius-md);
-  color: var(--os-fg-muted);
-  font-size: var(--os-text-sm);
-  font-weight: var(--os-font-weight-medium);
-  text-decoration: none;
-}
-
-.nav-link:hover {
-  background: var(--os-bg-surface-200);
-  color: var(--os-fg-default);
-}
-
-.nav-link.active {
-  background: var(--os-bg-selection);
-  color: var(--os-fg-default);
-}
-
 h1,
 h2,
 h3 {
