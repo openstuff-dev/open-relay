@@ -4,17 +4,23 @@ import type { Role } from '@open-relay/contracts';
 import {
   Icon,
   IconButton,
+  IdentityBadge,
   Menu,
   MenuItem,
   MenuLabel,
   MenuSeparator,
+  NavLink as OsNavLink,
   Page,
   PopoverTrigger,
+  ShellFooter,
+  ShellSwitcher,
+  ShellSwitcherButton,
+  ShellUser,
+  initials,
 } from '@openstuff-dev/ui-angular';
 import { Session } from './core/session';
 import {
   iconCheck,
-  iconChevrons,
   iconMenu,
   iconMerchants,
   iconNetworks,
@@ -27,8 +33,10 @@ import {
 } from './shared/icons';
 import { ROLE_LABELS } from './shared/labels';
 
+export { initials };
+
 type IconNode = typeof iconParcels;
-interface NavLink {
+interface NavItem {
   path: string;
   label: string;
   icon: IconNode;
@@ -36,20 +44,13 @@ interface NavLink {
 }
 
 /** The pages in the sidebar, and who sees each. */
-const LINKS: NavLink[] = [
+const LINKS: NavItem[] = [
   { path: 'scan', label: 'Scan', icon: iconScan, roles: ['admin', 'merchant', 'courier', 'point'] },
   { path: 'parcels', label: 'Parcels', icon: iconParcels, roles: ['admin', 'merchant', 'point'] },
   { path: 'pickups', label: 'Pickups', icon: iconPickups, roles: ['admin', 'courier'] },
   { path: 'points', label: 'Pick-up points', icon: iconPoints, roles: ['admin'] },
   { path: 'merchants', label: 'Shops', icon: iconMerchants, roles: ['admin'] },
 ];
-
-/** "Demo Network" → "DN", "Acme" → "AC". */
-export function initials(name: string): string {
-  const words = name.split(/\s+/).filter(Boolean);
-  const pair = words.length > 1 ? words.slice(0, 2).map((w) => w.charAt(0)).join('') : name.slice(0, 2);
-  return (pair || '?').toUpperCase();
-}
 
 /**
  * The frame around every signed-in page, laid out like OpenPurpose's: the brand row, the network
@@ -63,12 +64,18 @@ export function initials(name: string): string {
     RouterLinkActive,
     Icon,
     IconButton,
+    IdentityBadge,
     Menu,
     MenuItem,
     MenuLabel,
     MenuSeparator,
+    OsNavLink,
     Page,
     PopoverTrigger,
+    ShellFooter,
+    ShellSwitcher,
+    ShellSwitcherButton,
+    ShellUser,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -89,24 +96,28 @@ export function initials(name: string): string {
 
         @if (me(); as me) {
           @if (me.networks.length || me.isServerAdmin) {
-            <div class="ws">
-              <button type="button" class="ws-button" [os-popover-trigger]="wsMenu">
+            <div os-shell-switcher>
+              <button type="button" os-shell-switcher-button [os-popover-trigger]="wsMenu">
                 @if (session.membership(); as current) {
-                  <span class="badge" aria-hidden="true">{{ initials(current.name) }}</span>
-                  <span class="ws-text">
+                  <span os-identity-badge aria-hidden="true">{{ initials(current.name) }}</span>
+                  <span class="os-shell-switcher-text">
                     <strong>{{ current.name }}</strong>
                     <small>{{ roleLabels[current.role] }}</small>
                   </span>
                 } @else {
-                  <span class="badge neutral" aria-hidden="true">?</span>
-                  <span class="ws-text">
+                  <span os-identity-badge neutral aria-hidden="true">?</span>
+                  <span class="os-shell-switcher-text">
                     <strong>Choose a network</strong>
                     <small>{{ me.networks.length }} available</small>
                   </span>
                 }
-                <svg os-icon [icon]="icons.chevrons" size="sm" class="chevrons"></svg>
               </button>
-              <div os-menu #wsMenu="osPopover" class="ws-menu" aria-label="Switch network">
+              <div
+                os-menu
+                #wsMenu="osPopover"
+                class="os-shell-switcher-menu"
+                aria-label="Switch network"
+              >
                 @if (me.networks.length) {
                   <div os-menu-label>Networks</div>
                   @for (n of me.networks; track n.slug) {
@@ -117,10 +128,12 @@ export function initials(name: string): string {
                       [attr.aria-checked]="n.slug === network()"
                       (click)="pick(n.slug)"
                     >
-                      <span class="badge sm" aria-hidden="true">{{ initials(n.name) }}</span>
+                      <span os-identity-badge size="sm" aria-hidden="true">{{
+                        initials(n.name)
+                      }}</span>
                       {{ n.name }}
                       @if (n.slug === network()) {
-                        <svg os-icon [icon]="icons.check" size="sm" class="checked"></svg>
+                        <svg os-icon [icon]="icons.check" size="sm"></svg>
                       }
                     </button>
                   }
@@ -137,40 +150,29 @@ export function initials(name: string): string {
         }
 
         @if (network(); as n) {
-          <ul>
-            @for (link of links(); track link.path) {
-              <li>
-                <a
-                  [routerLink]="['/n', n, link.path]"
-                  routerLinkActive="active"
-                  ariaCurrentWhenActive="page"
-                >
-                  <svg os-icon [icon]="link.icon" size="sm"></svg>{{ link.label }}
-                </a>
-              </li>
-            }
-          </ul>
+          @for (link of links(); track link.path) {
+            <a
+              os-nav-link
+              [routerLink]="['/n', n, link.path]"
+              routerLinkActive
+              ariaCurrentWhenActive="page"
+              [icon]="link.icon"
+              >{{ link.label }}</a
+            >
+          }
         }
 
-        <div class="rail-foot">
-          <ul>
-            <li>
-              <a
-                [routerLink]="settingsLink()"
-                routerLinkActive="active"
-                ariaCurrentWhenActive="page"
-              >
-                <svg os-icon [icon]="icons.settings" size="sm"></svg>Settings
-              </a>
-            </li>
-          </ul>
+        <div os-shell-footer>
+          <a
+            os-nav-link
+            [routerLink]="settingsLink()"
+            routerLinkActive
+            ariaCurrentWhenActive="page"
+            [icon]="icons.settings"
+            >Settings</a
+          >
           @if (me(); as me) {
-            <div class="me-row">
-              <span class="avatar" aria-hidden="true">{{ initials(me.name || me.email) }}</span>
-              <span>
-                {{ me.name || me.email }}
-                <small>{{ roleLine() }}</small>
-              </span>
+            <div os-shell-user [name]="me.name || me.email" [role]="roleLine()">
               <button
                 os-icon-button
                 variant="ghost"
@@ -211,204 +213,12 @@ export function initials(name: string): string {
     </div>
   `,
   styles: `
-    .brand {
-      display: flex;
-      gap: var(--os-space-2);
-      align-items: center;
-      padding: 0 var(--os-space-5);
-      color: var(--os-fg-default);
-      font-size: var(--os-text-md);
-      font-weight: var(--os-font-weight-semibold);
-      letter-spacing: -0.01em;
-      text-decoration: none;
-    }
-
     .brand .ring {
       fill: var(--os-fg-default);
     }
 
     .brand .glyph {
       fill: var(--os-brand-default);
-    }
-
-    .os-shell-sidebar {
-      gap: var(--os-space-1);
-    }
-
-    .ws {
-      margin-block-end: var(--os-space-3);
-    }
-
-    .ws-button {
-      display: flex;
-      gap: var(--os-space-2);
-      align-items: center;
-      inline-size: 100%;
-      min-block-size: 2.75rem;
-      padding: var(--os-space-2);
-      border: 1px var(--os-border-style) var(--os-border-default);
-      border-radius: var(--os-radius-md);
-      background: var(--os-bg-surface-100);
-      color: var(--os-fg-default);
-      font: inherit;
-      text-align: start;
-      cursor: pointer;
-    }
-
-    .ws-button:hover {
-      border-color: var(--os-border-strong);
-    }
-
-    .chevrons {
-      margin-inline-start: auto;
-      color: var(--os-fg-muted);
-    }
-
-    .ws-text {
-      display: grid;
-      min-inline-size: 0;
-      line-height: 1.25;
-    }
-
-    .ws-text strong,
-    .ws-text small {
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
-
-    .ws-text strong {
-      font-size: var(--os-text-sm);
-      font-weight: var(--os-font-weight-semibold);
-    }
-
-    .ws-text small {
-      color: var(--os-fg-muted);
-      font-size: var(--os-text-xs);
-    }
-
-    .badge {
-      display: inline-grid;
-      flex: none;
-      place-items: center;
-      inline-size: 1.75rem;
-      block-size: 1.75rem;
-      border-radius: var(--os-radius-sm);
-      background: var(--os-brand-default);
-      color: var(--os-brand-ink);
-      font-size: 0.6875rem;
-      font-weight: var(--os-font-weight-semibold);
-      letter-spacing: 0.02em;
-    }
-
-    .badge.sm {
-      inline-size: 1.25rem;
-      block-size: 1.25rem;
-      font-size: 0.5625rem;
-    }
-
-    .badge.neutral {
-      background: var(--os-fg-default);
-      color: var(--os-bg-default);
-    }
-
-    .ws-menu {
-      min-inline-size: anchor-size(inline);
-    }
-
-    .checked {
-      margin-inline-start: auto;
-      color: var(--os-brand-default);
-    }
-
-    ul {
-      display: grid;
-      gap: 1px;
-      margin: 0;
-      padding: 0;
-      list-style: none;
-    }
-
-    li a {
-      display: flex;
-      gap: var(--os-space-2);
-      align-items: center;
-      min-block-size: 2.25rem;
-      padding-inline: var(--os-space-2);
-      border-radius: var(--os-radius-sm);
-      color: var(--os-fg-light);
-      font-size: var(--os-text-sm);
-      font-weight: var(--os-font-weight-medium);
-      text-decoration: none;
-    }
-
-    li a svg {
-      color: var(--os-fg-muted);
-    }
-
-    li a:hover {
-      background: var(--os-bg-hover);
-      color: var(--os-fg-default);
-    }
-
-    li a.active {
-      background: var(--os-bg-surface-100);
-      box-shadow: 0 0 0 1px var(--os-border-default);
-      color: var(--os-fg-default);
-    }
-
-    li a.active svg {
-      color: var(--os-brand-default);
-    }
-
-    .rail-foot {
-      display: grid;
-      gap: 1px;
-      margin-block-start: auto;
-      padding-block-start: var(--os-space-3);
-    }
-
-    .me-row {
-      display: flex;
-      gap: var(--os-space-2);
-      align-items: center;
-      margin-block-start: var(--os-space-2);
-      padding: var(--os-space-2);
-      border-block-start: 1px var(--os-border-style) var(--os-border-default);
-    }
-
-    .avatar {
-      display: grid;
-      flex: none;
-      place-items: center;
-      inline-size: 1.75rem;
-      block-size: 1.75rem;
-      border-radius: var(--os-radius-full);
-      background: var(--os-bg-hover);
-      color: var(--os-fg-light);
-      font-size: 0.6875rem;
-      font-weight: var(--os-font-weight-semibold);
-    }
-
-    .me-row > span:not(.avatar) {
-      display: grid;
-      min-inline-size: 0;
-      font-size: var(--os-text-sm);
-      font-weight: var(--os-font-weight-medium);
-      line-height: 1.3;
-    }
-
-    .me-row small {
-      overflow: hidden;
-      color: var(--os-fg-muted);
-      font-size: var(--os-text-xs);
-      font-weight: var(--os-font-weight-regular);
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
-
-    .me-row button {
-      margin-inline-start: auto;
     }
 
     .where {
@@ -427,7 +237,6 @@ export class Shell {
   protected readonly initials = initials;
   protected readonly icons = {
     check: iconCheck,
-    chevrons: iconChevrons,
     menu: iconMenu,
     networks: iconNetworks,
     settings: iconSettings,
